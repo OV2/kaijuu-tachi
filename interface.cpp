@@ -2,8 +2,11 @@
 Application *application = nullptr;
 RuleEditor *ruleEditor = nullptr;
 
+#include "resource/resource.hpp"
+#include "resource/resource.cpp"
+
 Application::Application(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v04");
+  setTitle("kaijuu v05");
   setFrameGeometry({64, 64, 725, 480});
 
   layout.setMargin(5);
@@ -38,9 +41,7 @@ Application::Application(const string &pathname) : pathname(pathname) {
       controlLayout.append(helpButton, {80, 0}, 5);
       controlLayout.append(canvas, {80, 88});
 
-  image icon;
-  icon.load({pathname, "kaijuu.png"});
-  canvas.setImage(icon);
+  canvas.setImage({resource::icon, sizeof resource::icon});
   canvas.update();
 
   onClose = &OS::quit;

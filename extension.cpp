@@ -98,34 +98,33 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
   auto &rule = settings.rules(ruleIDs(id));
 
   string nameID = fileList(0);
-  string basenameID = notdir(nall::basename(nameID));
-  string filenameID = notdir(nameID);
   string pathnameID = dir(nameID).rtrim<1>("\\");
+  string filenameID = notdir(nameID);
+  string basenameID = notdir(nall::basename(nameID));
   string extensionID = extension(nameID);
 
-  string fileID = {"\"", nameID, "\""};
   string pathID = {"\"", pathnameID, "\""};
+  string fileID = {"\"", nameID, "\""};
 
-  string filesID;
-  for(auto &filename : fileList) filesID.append("\"", filename, "\"", " ");
-  filesID.rtrim<1>(" ");
-  string pathsID;
+  string pathsID, filesID;
   for(auto &filename : fileList) pathsID.append("\"", dir(filename).rtrim<1>("\\"), "\"", " ");
+  for(auto &filename : fileList) filesID.append("\"", filename, "\"", " ");
+  pathsID.rtrim<1>(" "), filesID.rtrim<1>(" ");
 
   lstring params = rule.command.qsplit<1>(" ");
   params(1).replace("{name}", nameID);
-  params(1).replace("{basename}", basenameID);
-  params(1).replace("{filename}", filenameID);
   params(1).replace("{pathname}", pathnameID);
+  params(1).replace("{filename}", filenameID);
+  params(1).replace("{basename}", basenameID);
   params(1).replace("{extension}", extensionID);
 
-  params(1).replace("{file}", fileID);
   params(1).replace("{path}", pathID);
+  params(1).replace("{file}", fileID);
 
-  params(1).replace("{files}", filesID);
   params(1).replace("{paths}", pathsID);
+  params(1).replace("{files}", filesID);
 
-  if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), utf16_t(pathID), SW_SHOWNORMAL) <= 32) {
+  if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), utf16_t(pathnameID), SW_SHOWNORMAL) <= 32) {
     MessageBoxW(0, L"Error opening associated program.", L"kaijuu", MB_OK);
   }
 
