@@ -97,31 +97,35 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
   auto ruleIDs = matchedRules();
   auto &rule = settings.rules(ruleIDs(id));
 
-  string filename = fileList(0);
-  string pathname = filename;
-  if(directory::exists(pathname) == false) pathname = dir(pathname);
-  if(pathname.endswith("\\")) pathname.rtrim<1>("\\");
+  string nameID = fileList(0);
+  string basenameID = notdir(nall::basename(nameID));
+  string filenameID = notdir(nameID);
+  string pathnameID = dir(nameID).rtrim<1>("\\");
+  string extensionID = extension(nameID);
 
-  string filenames, pathnames;
-  for(auto &filename : fileList) {
-    string pathname = filename;
-    if(directory::exists(pathname) == false) pathname = dir(pathname);
-    if(pathname.endswith("\\")) pathname.rtrim<1>("\\");
-    filenames.append("\"", filename, "\" ");
-    pathnames.append("\"", pathname, "\" ");
-  }
-  filenames.rtrim<1>(" ");
-  pathnames.rtrim<1>(" ");
+  string fileID = {"\"", nameID, "\""};
+  string pathID = {"\"", pathnameID, "\""};
+
+  string filesID;
+  for(auto &filename : fileList) filesID.append("\"", filename, "\"", " ");
+  filesID.rtrim<1>(" ");
+  string pathsID;
+  for(auto &filename : fileList) pathsID.append("\"", dir(filename).rtrim<1>("\\"), "\"", " ");
 
   lstring params = rule.command.qsplit<1>(" ");
-  params(1).replace("{ufile}", filename);
-  params(1).replace("{upath}", pathname);
-  params(1).replace("{file}", string{"\"", filename, "\""});
-  params(1).replace("{path}", string{"\"", pathname, "\""});
-  params(1).replace("{files}", filenames);
-  params(1).replace("{paths}", pathnames);
+  params(1).replace("{name}", nameID);
+  params(1).replace("{basename}", basenameID);
+  params(1).replace("{filename}", filenameID);
+  params(1).replace("{pathname}", pathnameID);
+  params(1).replace("{extension}", extensionID);
 
-  if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), utf16_t(dir(filename)), SW_SHOWNORMAL) <= 32) {
+  params(1).replace("{file}", fileID);
+  params(1).replace("{path}", pathID);
+
+  params(1).replace("{files}", filesID);
+  params(1).replace("{paths}", pathsID);
+
+  if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), utf16_t(pathID), SW_SHOWNORMAL) <= 32) {
     MessageBoxW(0, L"Error opening associated program.", L"kaijuu", MB_OK);
   }
 

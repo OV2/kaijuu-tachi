@@ -3,8 +3,8 @@ Application *application = nullptr;
 RuleEditor *ruleEditor = nullptr;
 
 Application::Application(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v03");
-  setFrameGeometry({64, 64, 720, 480});
+  setTitle("kaijuu v04");
+  setFrameGeometry({64, 64, 725, 480});
 
   layout.setMargin(5);
   statusLabel.setFont("Tahoma, 8, Bold");
@@ -216,6 +216,9 @@ RuleEditor::RuleEditor() : index(-1) {
     synchronize();
   };
 
+  nameValue.onActivate =
+  patternValue.onActivate =
+  commandValue.onActivate =
   assignButton.onActivate = [&] {
     Settings::Rule rule = {
       nameValue.text(),
@@ -283,7 +286,7 @@ bool isWow64() {
 
 int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
   if(isWow64()) {
-    MessageWindow::critical(Window::None, "Error: you must run kaijuu64.exe on 64-bit Windows.");
+    MessageWindow::critical(Window::none(), "Error: you must run kaijuu64.exe on 64-bit Windows.");
     return 0;
   }
 

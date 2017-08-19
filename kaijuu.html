@@ -23,7 +23,7 @@
     </style>
   </head>
   <body>
-    <h1>kaijuu v03</h1>
+    <h1>kaijuu v04</h1>
     Author: byuu<br>
     License: ISC<br>
     <br>
@@ -131,38 +131,28 @@
     So you could say <i>cmd</i> to invoke the command-prompt.</p>
 
     <p>After the program name, you can specify the program arguments.
-    kaijuu has six special identifiers built-in, that are replaced with
+    kaijuu has many special identifiers built-in, that are replaced with
     the file and/or folder names that were selected. When using the
     <i>Select</i> button, <i>{file}</i> is automatically appended for
     convenience, which should be sufficient for most cases. You can of
-    course customize the rule afterward.</p>
-
-    <p><i>{file}</i> is replaced with the selected file name. The file
-    name is surrounded by quotes, so that programs can parse file names
-    with spaces properly. If a folder was selected, this is equivalent
-    to <i>{path}</i>. For instance, <i>"c:\my folder\my document.txt"
-    </i>.</p>
-
-    <p><i>{path}</i> is replaced with the path to the selected file, or
-    in other words, the directory where the file resides. It includes
-    quotes around the path. For instance, <i>"c:\my folder"</i>.
+    course customize the rule afterward with the following identifiers:
     </p>
 
-    <p><i>{ufile}</i> is a special case that uses the file name without
-    the quotation marks. For instance, <i>c:\my document.txt</i>.</p>
+<pre>
+{name}     = c:\path\file.txt
+{basename} = file
+{filename} = file.txt
+{pathname} = c:\path
 
-    <p><i>{upath}</i> is a special case that uses the path name without
-    the quotation marks. For instance, <i>c:\my path</i>. An example
-    usage for this would be to add your own quotes for a special rule,
-    such as: <i>"c:\my program.exe" "{upath}\*"</i>, where the argument
-    would expand to <i>"c:\my path\*"</i></p>
+{file} = "c:\path\file.txt"
+{path} = "c:\path"
 
-    <p><i>{files}</i> will expand to a list of quoted file names. For
-    instance, with two files selected, this could expand to
-    <i>"c:\file 1.txt" "c:\file 2.txt"</i>.</p>
+{files} = "c:\path1\file1.txt" "c:\path2\file2.txt"
+{paths} = "c:\path1" "c:\path2"
+</pre>
 
-    <p><i>{paths}</i> will expand to a list of quoted path names. For
-    instance, <i>"c:\path 1" "c:\path 2"</i>.</p>
+    <p>Note that if you use the first group, you must add your own
+    quotes around the identifiers, eg <i>notepad "{name}"</i>.</p>
 
     <p>If the command includes <i>{files}</i> or <i>{paths}</i> within
     the string, then kaijuu will match this rule when one or more files
@@ -202,7 +192,7 @@
       <tr><th>Name</th><th>Default</th><th>Match</th><th>Pattern</th><th>Command</th></tr>
       <tr><td>Open terminal here</td><td>No</td><td>Folders</td><td>*</td><td>cmd /k cd /d {path}</td></tr>
       <tr><td>Edit Makefile</td><td>Yes</td><td>Files</td><td>Makefile</td><td>notepad {file}</td></tr>
-      <tr><td>Play song(s)</td><td>No</td><td>Files</td><td>*.mp3</td><td>"c:\winamp.exe {files}"</td></tr>
+      <tr><td>Play song(s)</td><td>No</td><td>Files</td><td>*.mp3</td><td>"c:\winamp.exe" {files}</td></tr>
       <tr><td>Load as Game Folder</td><td>Yes</td><td>Folders</td><td>*.fc;*.sfc;*.gba</td><td>"c:\bsnes.exe" {path}</td></tr>
     </table>
   </body>
