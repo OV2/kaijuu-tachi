@@ -1,30 +1,17 @@
-#ifndef NALL_WINDOWS_GUID_HPP
-#define NALL_WINDOWS_GUID_HPP
+#pragma once
 
-#include <nall/random.hpp>
 #include <nall/string.hpp>
 
 namespace nall {
 
-//generate unique GUID
-inline string guid() {
-  random_lfsr lfsr;
-  lfsr.seed(time(nullptr));
-  for(unsigned n = 0; n < 256; n++) lfsr();
+inline auto guid() -> string {
+  GUID guidInstance;
+  CoCreateGuid(&guidInstance);
 
-  string output;
-  for(unsigned n = 0; n < 4; n++) output.append(hex<2>(lfsr()));
-  output.append("-");
-  for(unsigned n = 0; n < 2; n++) output.append(hex<2>(lfsr()));
-  output.append("-");
-  for(unsigned n = 0; n < 2; n++) output.append(hex<2>(lfsr()));
-  output.append("-");
-  for(unsigned n = 0; n < 2; n++) output.append(hex<2>(lfsr()));
-  output.append("-");
-  for(unsigned n = 0; n < 6; n++) output.append(hex<2>(lfsr()));
-  return {"{", output, "}"};
+  wchar_t guidString[39];
+  StringFromGUID2(guidInstance, guidString, 39);
+
+  return (char*)utf8_t(guidString);
 }
 
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef NALL_BEAT_MULTI_HPP
-#define NALL_BEAT_MULTI_HPP
+#pragma once
 
 #include <nall/beat/patch.hpp>
 #include <nall/beat/linear.hpp>
@@ -8,34 +7,34 @@
 namespace nall {
 
 struct bpsmulti {
-  enum : unsigned {
+  enum : uint {
     CreatePath = 0,
     CreateFile = 1,
     ModifyFile = 2,
     MirrorFile = 3,
   };
 
-  enum : unsigned {
+  enum : uint {
     OriginSource = 0,
     OriginTarget = 1,
   };
 
-  bool create(const string& patchName, const string& sourcePath, const string& targetPath, bool delta = false, const string& metadata = "") {
+  auto create(const string& patchName, const string& sourcePath, const string& targetPath, bool delta = false, const string& metadata = "") -> bool {
     if(fp.open()) fp.close();
     fp.open(patchName, file::mode::write);
-    checksum = ~0;
+    checksum.reset();
 
     writeString("BPM1");  //signature
     writeNumber(metadata.length());
     writeString(metadata);
 
-    lstring sourceList, targetList;
+    string_vector sourceList, targetList;
     ls(sourceList, sourcePath, sourcePath);
     ls(targetList, targetPath, targetPath);
 
     for(auto& targetName : targetList) {
       if(targetName.endsWith("/")) {
-        targetName.rtrim<1>("/");
+        targetName.trimRight("/");
         writeNumber(CreatePath | ((targetName.length() - 1) << 2));
         writeString(targetName);
       } else if(auto position = sourceList.find(targetName)) {  //if sourceName == targetName
@@ -44,19 +43,19 @@ struct bpsmulti {
         dp.open({targetPath, targetName}, file::mode::read);
 
         bool identical = sp.size() == dp.size();
-        uint32_t cksum = ~0;
+        Hash::CRC32 cksum;
 
-        for(unsigned n = 0; n < sp.size(); n++) {
+        for(uint n = 0; n < sp.size(); n++) {
           uint8_t byte = sp.read();
           if(identical && byte != dp.read()) identical = false;
-          cksum = crc32_adjust(cksum, byte);
+          cksum.input(byte);
         }
 
         if(identical) {
           writeNumber(MirrorFile | ((targetName.length() - 1) << 2));
           writeString(targetName);
           writeNumber(OriginSource);
-          writeChecksum(~cksum);
+          writeChecksum(cksum.digest().hex());
         } else {
           writeNumber(ModifyFile | ((targetName.length() - 1) << 2));
           writeString(targetName);
@@ -66,15 +65,15 @@ struct bpsmulti {
             bpslinear patch;
             patch.source({sourcePath, targetName});
             patch.target({targetPath, targetName});
-            patch.create({temppath(), "temp.bps"});
+            patch.create({Path::temp(), "temp.bps"});
           } else {
             bpsdelta patch;
             patch.source({sourcePath, targetName});
             patch.target({targetPath, targetName});
-            patch.create({temppath(), "temp.bps"});
+            patch.create({Path::temp(), "temp.bps"});
           }
 
-          auto buffer = file::read({temppath(), "temp.bps"});
+          auto buffer = file::read({Path::temp(), "temp.bps"});
           writeNumber(buffer.size());
           for(auto &byte : buffer) write(byte);
         }
@@ -83,24 +82,24 @@ struct bpsmulti {
         writeString(targetName);
         auto buffer = file::read({targetPath, targetName});
         writeNumber(buffer.size());
-        for(auto &byte : buffer) write(byte);
-        writeChecksum(crc32_calculate(buffer.data(), buffer.size()));
+        for(auto& byte : buffer) write(byte);
+        writeChecksum(Hash::CRC32(buffer.data(), buffer.size()).digest().hex());
       }
     }
 
     //checksum
-    writeChecksum(~checksum);
+    writeChecksum(checksum.digest().hex());
     fp.close();
     return true;
   }
 
-  bool apply(const string& patchName, const string& sourcePath, const string& targetPath) {
+  auto apply(const string& patchName, const string& sourcePath, const string& targetPath) -> bool {
     directory::remove(targetPath);  //start with a clean directory
     directory::create(targetPath);
 
     if(fp.open()) fp.close();
     fp.open(patchName, file::mode::read);
-    checksum = ~0;
+    checksum.reset();
 
     if(readString(4) != "BPM1") return false;
     auto metadataLength = readNumber();
@@ -108,8 +107,8 @@ struct bpsmulti {
 
     while(fp.offset() < fp.size() - 4) {
       auto encoding = readNumber();
-      unsigned action = encoding & 3;
-      unsigned targetLength = (encoding >> 2) + 1;
+      uint action = encoding & 3;
+      uint targetLength = (encoding >> 2) + 1;
       string targetName = readString(targetLength);
 
       if(action == CreatePath) {
@@ -127,7 +126,7 @@ struct bpsmulti {
         auto patchSize = readNumber();
         vector<uint8_t> buffer;
         buffer.resize(patchSize);
-        for(unsigned n = 0; n < patchSize; n++) buffer[n] = read();
+        for(uint n = 0; n < patchSize; n++) buffer[n] = read();
         bpspatch patch;
         patch.modify(buffer.data(), buffer.size());
         patch.source({originPath, sourceName});
@@ -142,7 +141,7 @@ struct bpsmulti {
       }
     }
 
-    uint32_t cksum = ~checksum;
+    uint32_t cksum = checksum.digest().hex();
     if(read() != (uint8_t)(cksum >>  0)) return false;
     if(read() != (uint8_t)(cksum >>  8)) return false;
     if(read() != (uint8_t)(cksum >> 16)) return false;
@@ -154,28 +153,28 @@ struct bpsmulti {
 
 protected:
   file fp;
-  uint32_t checksum;
+  Hash::CRC32 checksum;
 
   //create() functions
-  void ls(lstring& list, const string& path, const string& basepath) {
-    lstring paths = directory::folders(path);
+  auto ls(string_vector& list, const string& path, const string& basepath) -> void {
+    auto paths = directory::folders(path);
     for(auto& pathname : paths) {
-      list.append(string{path, pathname}.ltrim<1>(basepath));
+      list.append(string{path, pathname}.trimLeft(basepath, 1L));
       ls(list, {path, pathname}, basepath);
     }
 
-    lstring files = directory::files(path);
+    auto files = directory::files(path);
     for(auto& filename : files) {
-      list.append(string{path, filename}.ltrim<1>(basepath));
+      list.append(string{path, filename}.trimLeft(basepath, 1L));
     }
   }
 
-  void write(uint8_t data) {
+  auto write(uint8_t data) -> void {
     fp.write(data);
-    checksum = crc32_adjust(checksum, data);
+    checksum.input(data);
   }
 
-  void writeNumber(uint64_t data) {
+  auto writeNumber(uint64_t data) -> void {
     while(true) {
       uint64_t x = data & 0x7f;
       data >>= 7;
@@ -188,12 +187,12 @@ protected:
     }
   }
 
-  void writeString(const string& text) {
-    unsigned length = text.length();
-    for(unsigned n = 0; n < length; n++) write(text[n]);
+  auto writeString(const string& text) -> void {
+    uint length = text.length();
+    for(uint n = 0; n < length; n++) write(text[n]);
   }
 
-  void writeChecksum(uint32_t cksum) {
+  auto writeChecksum(uint32_t cksum) -> void {
     write(cksum >>  0);
     write(cksum >>  8);
     write(cksum >> 16);
@@ -201,13 +200,13 @@ protected:
   }
 
   //apply() functions
-  uint8_t read() {
+  auto read() -> uint8_t {
     uint8_t data = fp.read();
-    checksum = crc32_adjust(checksum, data);
+    checksum.input(data);
     return data;
   }
 
-  uint64_t readNumber() {
+  auto readNumber() -> uint64_t {
     uint64_t data = 0, shift = 1;
     while(true) {
       uint8_t x = read();
@@ -219,15 +218,15 @@ protected:
     return data;
   }
 
-  string readString(unsigned length) {
+  auto readString(uint length) -> string {
     string text;
-    text.reserve(length + 1);
-    for(unsigned n = 0; n < length; n++) text[n] = read();
-    text[length] = 0;
+    text.resize(length + 1);
+    char* p = text.get();
+    while(length--) *p++ = read();
     return text;
   }
 
-  uint32_t readChecksum() {
+  auto readChecksum() -> uint32_t {
     uint32_t checksum = 0;
     checksum |= read() <<  0;
     checksum |= read() <<  8;
@@ -238,5 +237,3 @@ protected:
 };
 
 }
-
-#endif

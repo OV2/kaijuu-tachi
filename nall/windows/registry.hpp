@@ -1,5 +1,4 @@
-#ifndef NALL_WINDOWS_REGISTRY_HPP
-#define NALL_WINDOWS_REGISTRY_HPP
+#pragma once
 
 #include <nall/platform.hpp>
 #include <nall/string.hpp>
@@ -24,10 +23,10 @@
 namespace nall {
 
 struct registry {
-  static bool exists(const string& name) {
-    lstring part = name.split("/");
-    HKEY handle, rootKey = root(part.take(0));
-    string node = part.take();
+  static auto exists(const string& name) -> bool {
+    auto part = name.split("/");
+    HKEY handle, rootKey = root(part.takeLeft());
+    string node = part.takeRight();
     string path = part.merge("\\");
     if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
       wchar_t data[NWR_SIZE] = L"";
@@ -39,10 +38,10 @@ struct registry {
     return false;
   }
 
-  static string read(const string& name) {
-    lstring part = name.split("/");
-    HKEY handle, rootKey = root(part.take(0));
-    string node = part.take();
+  static auto read(const string& name) -> string {
+    auto part = name.split("/");
+    HKEY handle, rootKey = root(part.takeLeft());
+    string node = part.takeRight();
     string path = part.merge("\\");
     if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
       wchar_t data[NWR_SIZE] = L"";
@@ -54,12 +53,12 @@ struct registry {
     return "";
   }
 
-  static void write(const string& name, const string& data = "") {
-    lstring part = name.split("/");
-    HKEY handle, rootKey = root(part.take(0));
-    string node = part.take(), path;
+  static auto write(const string& name, const string& data = "") -> void {
+    auto part = name.split("/");
+    HKEY handle, rootKey = root(part.takeLeft());
+    string node = part.takeRight(), path;
     DWORD disposition;
-    for(unsigned n = 0; n < part.size(); n++) {
+    for(uint n = 0; n < part.size(); n++) {
       path.append(part[n]);
       if(RegCreateKeyExW(rootKey, utf16_t(path), 0, nullptr, 0, NWR_FLAGS | KEY_ALL_ACCESS, nullptr, &handle, &disposition) == ERROR_SUCCESS) {
         if(n == part.size() - 1) {
@@ -71,30 +70,31 @@ struct registry {
     }
   }
 
-  static bool remove(const string& name) {
-    lstring part = name.split("/");
-    HKEY rootKey = root(part.take(0));
-    string node = part.take();
+  static auto remove(const string& name) -> bool {
+    auto part = name.split("/");
+    HKEY rootKey = root(part.takeLeft());
+    string node = part.takeRight();
     string path = part.merge("\\");
-    if(node.empty()) return SHDeleteKeyW(rootKey, utf16_t(path)) == ERROR_SUCCESS;
+    if(!node) return SHDeleteKeyW(rootKey, utf16_t(path)) == ERROR_SUCCESS;
     return SHDeleteValueW(rootKey, utf16_t(path), utf16_t(node)) == ERROR_SUCCESS;
   }
 
-  static lstring contents(const string& name) {
-    lstring part = name.split("/"), result;
-    HKEY handle, rootKey = root(part.take(0));
-    part.remove();
+  static auto contents(const string& name) -> string_vector {
+    string_vector result;
+    auto part = name.split("/");
+    HKEY handle, rootKey = root(part.takeLeft());
+    part.removeRight();
     string path = part.merge("\\");
     if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
       DWORD folders, nodes;
       RegQueryInfoKey(handle, nullptr, nullptr, nullptr, &folders, nullptr, nullptr, &nodes, nullptr, nullptr, nullptr, nullptr);
-      for(unsigned n = 0; n < folders; n++) {
+      for(uint n = 0; n < folders; n++) {
         wchar_t name[NWR_SIZE] = L"";
         DWORD size = NWR_SIZE * sizeof(wchar_t);
         RegEnumKeyEx(handle, n, (wchar_t*)&name, &size, nullptr, nullptr, nullptr, nullptr);
-        result.append({(const char*)utf8_t(name), "/"});
+        result.append(string{(const char*)utf8_t(name), "/"});
       }
-      for(unsigned n = 0; n < nodes; n++) {
+      for(uint n = 0; n < nodes; n++) {
         wchar_t name[NWR_SIZE] = L"";
         DWORD size = NWR_SIZE * sizeof(wchar_t);
         RegEnumValueW(handle, n, (wchar_t*)&name, &size, nullptr, nullptr, nullptr, nullptr);
@@ -106,7 +106,7 @@ struct registry {
   }
 
 private:
-  static HKEY root(const string& name) {
+  static auto root(const string& name) -> HKEY {
     if(name == "HKCR") return HKEY_CLASSES_ROOT;
     if(name == "HKCC") return HKEY_CURRENT_CONFIG;
     if(name == "HKCU") return HKEY_CURRENT_USER;
@@ -117,5 +117,3 @@ private:
 };
 
 }
-
-#endif

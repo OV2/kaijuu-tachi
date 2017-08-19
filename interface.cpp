@@ -2,19 +2,16 @@
 Program* program = nullptr;
 RuleEditor* ruleEditor = nullptr;
 
-#include "resource/resource.hpp"
 #include "resource/resource.cpp"
 
 Program::Program(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v06");
-  setFrameGeometry({64, 64, 725, 480});
+  setTitle("kaijuu v06r01");
+  setFrameGeometry({64, 64, 1024 - 75, 480});
 
   layout.setMargin(5);
-  statusLabel.setFont("Tahoma, 8, Bold");
+  statusLabel.setFont(Font().setBold());
   uninstallButton.setText("Uninstall");
   installButton.setText("Install");
-  settingList.setHeaderText({"Name", "Default", "Match", "Pattern", "Command"});
-  settingList.setHeaderVisible();
   appendButton.setText("Append");
   modifyButton.setText("Modify");
   moveUpButton.setText("Move Up");
@@ -23,44 +20,26 @@ Program::Program(const string &pathname) : pathname(pathname) {
   resetButton.setText("Reset");
   helpButton.setText("Help ...");
 
-  append(layout);
-  layout.append(installLayout, {~0, 0}, 5);
-    installLayout.append(statusLabel, {~0, 0}, 5);
-    installLayout.append(uninstallButton, {80, 0}, 5);
-    installLayout.append(installButton, {80, 0});
-  layout.append(settingLayout, {~0, ~0});
-    settingLayout.append(settingList, {~0, ~0}, 5);
-    settingLayout.append(controlLayout, {0, ~0});
-      controlLayout.append(appendButton, {80, 0}, 5);
-      controlLayout.append(modifyButton, {80, 0}, 5);
-      controlLayout.append(moveUpButton, {80, 0}, 5);
-      controlLayout.append(moveDownButton, {80, 0}, 5);
-      controlLayout.append(removeButton, {80, 0}, 5);
-      controlLayout.append(spacer, {0, ~0});
-      controlLayout.append(resetButton, {80, 0}, 5);
-      controlLayout.append(helpButton, {80, 0}, 5);
-      controlLayout.append(canvas, {80, 88});
+  canvas.setIcon(resource::icon);
 
-  canvas.setImage({resource::icon, sizeof resource::icon});
-
-  onClose = &Application::quit;
-  installButton.onActivate = {&Program::install, this};
-  uninstallButton.onActivate = {&Program::uninstall, this};
-  settingList.onActivate = {&Program::modifyAction, this};
-  settingList.onChange = {&Program::synchronize, this};
-  appendButton.onActivate = {&Program::appendAction, this};
-  modifyButton.onActivate = {&Program::modifyAction, this};
-  moveUpButton.onActivate = {&Program::moveUpAction, this};
-  moveDownButton.onActivate = {&Program::moveDownAction, this};
-  removeButton.onActivate = {&Program::removeAction, this};
-  resetButton.onActivate = {&Program::resetAction, this};
-  helpButton.onActivate = [&] { nall::invoke("kaijuu.html"); };
+  onClose(&Application::quit);
+  installButton.onActivate({&Program::install, this});
+  uninstallButton.onActivate({&Program::uninstall, this});
+  settingList.onActivate({&Program::modifyAction, this});
+  settingList.onChange({&Program::synchronize, this});
+  appendButton.onActivate({&Program::appendAction, this});
+  modifyButton.onActivate({&Program::modifyAction, this});
+  moveUpButton.onActivate({&Program::moveUpAction, this});
+  moveDownButton.onActivate({&Program::moveDownAction, this});
+  removeButton.onActivate({&Program::removeAction, this});
+  resetButton.onActivate({&Program::resetAction, this});
+  helpButton.onActivate([&] { nall::invoke("kaijuu.html"); });
   refresh();
   synchronize();
   setVisible();
 }
 
-void Program::synchronize() {
+auto Program::synchronize() -> void {
   if(registry::read({"HKLM/Software/Microsoft/Windows/CurrentVersion/Shell Extensions/Approved/", classID}) == classDescription) {
     statusLabel.setText("Extension status: installed");
     installButton.setEnabled(false);
@@ -70,84 +49,104 @@ void Program::synchronize() {
     installButton.setEnabled(true);
     uninstallButton.setEnabled(false);
   }
-  modifyButton.setEnabled(settingList.selected());
-  moveUpButton.setEnabled(settingList.selected() && settings.rules.size() > 1 && settingList.selection() != 0);
-  moveDownButton.setEnabled(settingList.selected() && settings.rules.size() > 1 && settingList.selection() < settings.rules.size() - 1);
-  removeButton.setEnabled(settingList.selected());
+  modifyButton.setEnabled((bool)settingList.selected());
+  if(settingList.selected()) {
+    uint selection = settingList.items().find(settingList.selected()).get();
+    moveUpButton.setEnabled(settings.rules.size() > 1 && selection > 0);
+    moveDownButton.setEnabled(settings.rules.size() > 1 && selection < settings.rules.size() - 1);
+    removeButton.setEnabled(true);
+  } else {
+    moveUpButton.setEnabled(false);
+    moveDownButton.setEnabled(false);
+    removeButton.setEnabled(false);
+  }
   resetButton.setEnabled(settings.rules.size() > 0);
 }
 
-void Program::refresh() {
+auto Program::refresh() -> void {
   settings.load();
   settingList.reset();
+  settingList.append(TableViewHeader().setVisible()
+    .append(TableViewColumn().setText("Name"))
+    .append(TableViewColumn().setText("Default"))
+    .append(TableViewColumn().setText("Match"))
+    .append(TableViewColumn().setText("Pattern"))
+    .append(TableViewColumn().setText("Command").setExpandable())
+  );
   for(auto &rule : settings.rules) {
     string match = "Nothing";
     if(rule.matchFiles && rule.matchFolders) match = "Everything";
     else if(rule.matchFiles) match = "Files";
     else if(rule.matchFolders) match = "Folders";
-    settingList.append({rule.name, rule.defaultAction ? "Yes" : "No", match, rule.pattern, rule.command});
+    settingList.append(TableViewItem()
+      .append(TableViewCell().setText(rule.name))
+      .append(TableViewCell().setText(rule.defaultAction ? "Yes" : "No"))
+      .append(TableViewCell().setText(match))
+      .append(TableViewCell().setText(rule.pattern))
+      .append(TableViewCell().setText(rule.command))
+    );
   }
-  settingList.autoSizeColumns();
+  settingList.resizeColumns();
 }
 
-void Program::install() {
+auto Program::install() -> void {
   string command = {"regsvr32 \"", pathname, classDriver, "\""};
   _wsystem(utf16_t(command));
   synchronize();
 }
 
-void Program::uninstall() {
+auto Program::uninstall() -> void {
   string command = {"regsvr32 /u \"", pathname, classDriver, "\""};
   _wsystem(utf16_t(command));
   synchronize();
 }
 
-void Program::appendAction() {
+auto Program::appendAction() -> void {
   ruleEditor->show();
 }
 
-void Program::modifyAction() {
-  if(settingList.selected() == false) return;
-  unsigned selection = settingList.selection();
+auto Program::modifyAction() -> void {
+  if(!settingList.selected()) return;
+  uint selection = settingList.items().find(settingList.selected()).get();
   ruleEditor->show(selection);
 }
 
-void Program::moveUpAction() {
-  if(settingList.selected() == false) return;
-  if(settingList.selection() == 0) return;
-  unsigned selection = settingList.selection();
+auto Program::moveUpAction() -> void {
+  if(!settingList.selected()) return;
+  uint selection = settingList.items().find(settingList.selected()).get();
+  if(selection == 0) return;
   auto temp = settings.rules(selection - 1);
   settings.rules(selection - 1) = settings.rules(selection);
   settings.rules(selection) = temp;
   settings.save();
   refresh();
-  settingList.setSelection(selection - 1);
+  settingList.item(selection - 1).setSelected();
   synchronize();
 }
 
-void Program::moveDownAction() {
-  if(settingList.selected() == false) return;
-  if(settingList.selection() >= settings.rules.size() - 1) return;
-  unsigned selection = settingList.selection();
+auto Program::moveDownAction() -> void {
+  if(!settingList.selected()) return;
+  uint selection = settingList.items().find(settingList.selected()).get();
+  if(selection >= settings.rules.size() - 1) return;
   auto temp = settings.rules(selection + 1);
   settings.rules(selection + 1) = settings.rules(selection);
   settings.rules(selection) = temp;
   settings.save();
   refresh();
-  settingList.setSelection(selection + 1);
+  settingList.item(selection + 1).setSelected();
   synchronize();
 }
 
-void Program::removeAction() {
-  if(settingList.selected() == false) return;
-  unsigned selection = settingList.selection();
+auto Program::removeAction() -> void {
+  if(!settingList.selected()) return;
+  uint selection = settingList.items().find(settingList.selected()).get();
   settings.rules.remove(selection);
   settings.save();
   refresh();
   synchronize();
 }
 
-void Program::resetAction() {
+auto Program::resetAction() -> void {
   if(MessageWindow().setParent(*this).setText("Warning: this will permanently remove all rules! Are you sure you want to do this?")
   .question() == MessageWindow::Response::No) return;
   settings.rules.reset();
@@ -170,59 +169,23 @@ RuleEditor::RuleEditor() : index(-1) {
   foldersAction.setText("Match Folders");
   assignButton.setText("Assign");
 
-  string font = Font::sans(8);
-  unsigned length = 0;
-  length = max(length, Font::size(font, "Name:").width);
-  length = max(length, Font::size(font, "Pattern:").width);
-  length = max(length, Font::size(font, "Command:").width);
+  nameValue.onChange({&RuleEditor::synchronize, this});
+  patternValue.onChange({&RuleEditor::synchronize, this});
+  commandValue.onChange({&RuleEditor::synchronize, this});
 
-  append(layout);
-  layout.append(nameLayout, {~0, 0}, 5);
-    nameLayout.append(nameLabel, {length, 0}, 5);
-    nameLayout.append(nameValue, {~0, 0});
-  layout.append(patternLayout, {~0, 0}, 5);
-    patternLayout.append(patternLabel, {length, 0}, 5);
-    patternLayout.append(patternValue, {~0, 0});
-  layout.append(commandLayout, {~0, 0}, 5);
-    commandLayout.append(commandLabel, {length, 0}, 5);
-    commandLayout.append(commandValue, {~0, 0}, 5);
-    commandLayout.append(commandSelect, {80, 0});
-  layout.append(controlLayout, {~0, 0});
-    controlLayout.append(defaultAction, {0, 0}, 5);
-    controlLayout.append(filesAction, {0, 0}, 5);
-    controlLayout.append(foldersAction, {0, 0}, 5);
-    controlLayout.append(spacer, {~0, 0});
-    controlLayout.append(assignButton, {80, 0});
-
-  Geometry geometry = Window::geometry();
-  geometry.height = layout.minimumSize().height;
-  setGeometry(geometry);
-
-  //onClose = [&] {
-  //  setModal(modal = false);
-  //};
-
-  nameValue.onChange =
-  patternValue.onChange =
-  commandValue.onChange =
-  {&RuleEditor::synchronize, this};
-
-  commandSelect.onActivate = [&] {
+  commandSelect.onActivate([&] {
     string pathname = BrowserWindow().setParent(*this)
     .setPath(program->pathname)
     .setFilters({"Programs (*.exe)", "All Files (*)"})
     .open();
-    if(pathname.empty() == false) {
+    if(pathname) {
       pathname.transform("/", "\\");
       commandValue.setText({"\"", pathname, "\" {file}"});
     }
     synchronize();
-  };
+  });
 
-  nameValue.onActivate =
-  patternValue.onActivate =
-  commandValue.onActivate =
-  assignButton.onActivate = [&] {
+  auto assign = [&] {
     Settings::Rule rule = {
       nameValue.text(),
       patternValue.text(),
@@ -237,22 +200,27 @@ RuleEditor::RuleEditor() : index(-1) {
       settings.rules(index) = rule;
     }
     settings.save();
+    setVisible(false);
+    setModal(false);
     program->refresh();
     program->synchronize();
-    setVisible(false);
-    setModal(false);//modal = false);
   };
+
+  nameValue.onActivate(assign);
+  patternValue.onActivate(assign);
+  commandValue.onActivate(assign);
+  assignButton.onActivate(assign);
 }
 
-void RuleEditor::synchronize() {
+auto RuleEditor::synchronize() -> void {
   bool enable = true;
-  if(nameValue.text().empty()) enable = false;
-  if(patternValue.text().empty()) enable = false;
-  if(commandValue.text().empty()) enable = false;
+  if(!nameValue.text()) enable = false;
+  if(!patternValue.text()) enable = false;
+  if(!commandValue.text()) enable = false;
   assignButton.setEnabled(enable);
 }
 
-void RuleEditor::show(signed ruleID) {
+auto RuleEditor::show(int ruleID) -> void {
   Settings::Rule rule{"", "", false, true, false, "", false};
   if(ruleID >= 0) rule = settings.rules(ruleID);
 
@@ -265,19 +233,19 @@ void RuleEditor::show(signed ruleID) {
   foldersAction.setChecked(rule.matchFolders);
   synchronize();
   setVisible();
-  //setFocused();
+  setFocused();
   nameValue.setFocused();
 
-  setModal();//modal = true);
+  setModal(true);
   while(visible()) {
     Application::processEvents();
   }
-  //program->setFocused();
+  program->setFocused();
 }
 
 typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
 
-bool isWow64() {
+auto isWow64() -> bool {
   LPFN_ISWOW64PROCESS fnIsWow64Process;
   fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandleW(L"kernel32"), "IsWow64Process");
   if(!fnIsWow64Process) return false;
@@ -286,7 +254,7 @@ bool isWow64() {
   return result == TRUE;
 }
 
-int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
+auto CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) -> int {
   if(isWow64()) {
     MessageWindow().setText("Error: you must run kaijuu64.exe on 64-bit Windows.").error();
     return 0;
@@ -297,7 +265,7 @@ int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
 
   string pathname = (const char*)utf8_t(filename);
   pathname.transform("\\", "/");
-  pathname = dir(pathname);
+  pathname = Location::path(pathname);
 
   program = new Program(pathname);
   ruleEditor = new RuleEditor;

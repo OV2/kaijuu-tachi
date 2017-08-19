@@ -1,7 +1,7 @@
 struct CShellExt : IContextMenu, IShellExtInit {
 protected:
   unsigned instanceCount;
-  lstring fileList;
+  string_vector fileList;
 
 public:
   CShellExt();

@@ -1,5 +1,4 @@
-#ifndef NALL_HASHSET_HPP
-#define NALL_HASHSET_HPP
+#pragma once
 
 //hashset
 //
@@ -8,36 +7,30 @@
 //remove: O(1) average; O(n) worst
 //
 //requirements:
-//  unsigned T::hash() const;
-//  bool T::operator==(const T&) const;
+//  auto T::hash() const -> uint;
+//  auto T::operator==(const T&) const -> bool;
 
 namespace nall {
 
 template<typename T>
 struct hashset {
-protected:
-  T** pool = nullptr;
-  unsigned length = 8;  //length of pool
-  unsigned count = 0;   //number of objects inside of the pool
-
-public:
-  hashset() {}
-  hashset(unsigned length) : length(bit::round(length)) {}
+  hashset() = default;
+  hashset(uint length) : length(bit::round(length)) {}
   hashset(const hashset& source) { operator=(source); }
-  hashset(hashset&& source) { operator=(std::move(source)); }
+  hashset(hashset&& source) { operator=(move(source)); }
   ~hashset() { reset(); }
 
-  hashset& operator=(const hashset& source) {
+  auto operator=(const hashset& source) -> hashset& {
     reset();
     if(source.pool) {
-      for(unsigned n = 0; n < source.count; n++) {
+      for(uint n : range(source.count)) {
         insert(*source.pool[n]);
       }
     }
     return *this;
   }
 
-  hashset& operator=(hashset&& source) {
+  auto operator=(hashset&& source) -> hashset& {
     reset();
     pool = source.pool;
     length = source.length;
@@ -48,13 +41,13 @@ public:
     return *this;
   }
 
-  unsigned capacity() const { return length; }
-  unsigned size() const { return count; }
-  bool empty() const { return count == 0; }
+  explicit operator bool() const { return count; }
+  auto capacity() const -> uint { return length; }
+  auto size() const -> uint { return count; }
 
-  void reset() {
+  auto reset() -> void {
     if(pool) {
-      for(unsigned n = 0; n < length; n++) {
+      for(uint n : range(length)) {
         if(pool[n]) {
           delete pool[n];
           pool[n] = nullptr;
@@ -67,15 +60,15 @@ public:
     count = 0;
   }
 
-  void reserve(unsigned size) {
+  auto reserve(uint size) -> void {
     //ensure all items will fit into pool (with <= 50% load) and amortize growth
     size = bit::round(max(size, count << 1));
     T** copy = new T*[size]();
 
     if(pool) {
-      for(unsigned n = 0; n < length; n++) {
+      for(uint n : range(length)) {
         if(pool[n]) {
-          unsigned hash = (*pool[n]).hash() & (size - 1);
+          uint hash = (*pool[n]).hash() & (size - 1);
           while(copy[hash]) if(++hash >= size) hash = 0;
           copy[hash] = pool[n];
           pool[n] = nullptr;
@@ -88,36 +81,36 @@ public:
     length = size;
   }
 
-  optional<T&> find(const T& value) {
-    if(!pool) return false;
+  auto find(const T& value) -> maybe<T&> {
+    if(!pool) return nothing;
 
-    unsigned hash = value.hash() & (length - 1);
+    uint hash = value.hash() & (length - 1);
     while(pool[hash]) {
-      if(value == *pool[hash]) return {true, *pool[hash]};
+      if(value == *pool[hash]) return *pool[hash];
       if(++hash >= length) hash = 0;
     }
 
-    return false;
+    return nothing;
   }
 
-  optional<T&> insert(const T& value) {
+  auto insert(const T& value) -> maybe<T&> {
     if(!pool) pool = new T*[length]();
 
     //double pool size when load is >= 50%
     if(count >= (length >> 1)) reserve(length << 1);
     count++;
 
-    unsigned hash = value.hash() & (length - 1);
+    uint hash = value.hash() & (length - 1);
     while(pool[hash]) if(++hash >= length) hash = 0;
     pool[hash] = new T(value);
 
-    return {true, *pool[hash]};
+    return *pool[hash];
   }
 
-  bool remove(const T& value) {
+  auto remove(const T& value) -> bool {
     if(!pool) return false;
 
-    unsigned hash = value.hash() & (length - 1);
+    uint hash = value.hash() & (length - 1);
     while(pool[hash]) {
       if(value == *pool[hash]) {
         delete pool[hash];
@@ -130,8 +123,11 @@ public:
 
     return false;
   }
+
+protected:
+  T** pool = nullptr;
+  uint length = 8;  //length of pool
+  uint count = 0;   //number of objects inside of the pool
 };
 
 }
-
-#endif

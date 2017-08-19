@@ -1,5 +1,4 @@
-#ifndef NALL_SET_HPP
-#define NALL_SET_HPP
+#pragma once
 
 //set
 //implementation: red-black tree
@@ -27,80 +26,93 @@ template<typename T> struct set {
   };
 
   node_t* root = nullptr;
-  unsigned nodes = 0;
+  uint nodes = 0;
 
-  set& operator=(const set& source) { copy(source); return *this; }
-  set& operator=(set&& source) { move(std::move(source)); return *this; }
-  set(const set& source) { operator=(source); }
-  set(set&& source) { operator=(std::move(source)); }
-  set(std::initializer_list<T> list) { for(auto& value : list) insert(value); }
   set() = default;
+  set(const set& source) { operator=(source); }
+  set(set&& source) { operator=(move(source)); }
+  set(std::initializer_list<T> list) { for(auto& value : list) insert(value); }
   ~set() { reset(); }
 
-  unsigned size() const { return nodes; }
-  bool empty() const { return nodes == 0; }
+  auto operator=(const set& source) -> set& {
+    reset();
+    copy(root, source.root);
+    nodes = source.nodes;
+    return *this;
+  }
 
-  void reset() {
+  auto operator=(set&& source) -> set& {
+    root = source.root;
+    nodes = source.nodes;
+    source.root = nullptr;
+    source.nodes = 0;
+    return *this;
+  }
+
+  explicit operator bool() const { return nodes; }
+  auto size() const -> uint { return nodes; }
+
+  auto reset() -> void {
     reset(root);
     nodes = 0;
   }
 
-  optional<T&> find(const T& value) {
+  auto find(const T& value) -> maybe<T&> {
     if(node_t* node = find(root, value)) return node->value;
-    return false;
+    return nothing;
   }
 
-  optional<const T&> find(const T& value) const {
+  auto find(const T& value) const -> maybe<const T&> {
     if(node_t* node = find(root, value)) return node->value;
-    return false;
+    return nothing;
   }
 
-  optional<T&> insert(const T& value) {
-    unsigned count = size();
+  auto insert(const T& value) -> maybe<T&> {
+    uint count = size();
     node_t* v = insert(root, value);
     root->red = 0;
-    if(size() == count) return false;
-    return {true, v->value};
+    if(size() == count) return nothing;
+    return v->value;
   }
 
-  template<typename... Args> bool insert(const T& value, Args&&... args) {
+  template<typename... P> auto insert(const T& value, P&&... p) -> bool {
     bool result = insert(value);
-    insert(std::forward<Args>(args)...) | result;
+    insert(forward<P>(p)...) | result;
     return result;
   }
 
-  bool remove(const T& value) {
-    unsigned count = size();
+  auto remove(const T& value) -> bool {
+    uint count = size();
     bool done = 0;
     remove(root, &value, done);
     if(root) root->red = 0;
     return size() < count;
   }
 
-  template<typename... Args> bool remove(const T& value, Args&&... args) {
+  template<typename... P> auto remove(const T& value, P&&... p) -> bool {
     bool result = remove(value);
-    return remove(std::forward<Args>(args)...) | result;
+    return remove(forward<P>(p)...) | result;
   }
 
   struct base_iterator {
-    bool operator!=(const base_iterator& source) const { return position != source.position; }
+    auto operator!=(const base_iterator& source) const -> bool { return position != source.position; }
 
-    base_iterator& operator++() {
+    auto operator++() -> base_iterator& {
       if(++position >= source.size()) { position = source.size(); return *this; }
 
-      if(stack.last()->link[1]) {
-        stack.append(stack.last()->link[1]);
-        while(stack.last()->link[0]) stack.append(stack.last()->link[0]);
+      if(stack.right()->link[1]) {
+        stack.append(stack.right()->link[1]);
+        while(stack.right()->link[0]) stack.append(stack.right()->link[0]);
       } else {
         node_t* child;
-        do child = stack.take();
-        while(child == stack.last()->link[1]);
+        do child = stack.takeRight();
+        while(child == stack.right()->link[1]);
       }
 
       return *this;
     }
 
-    base_iterator(const set& source, unsigned position) : source(source), position(position) {
+    base_iterator(const set& source, uint position) : source(source), position(position) {
       node_t* node = source.root;
       while(node) {
         stack.append(node);
@@ -110,28 +122,28 @@ template<typename T> struct set {
 
   protected:
     const set& source;
-    unsigned position;
+    uint position;
     vector<node_t*> stack;
   };
 
   struct iterator : base_iterator {
-    T& operator*() const { return base_iterator::stack.last()->value; }
-    iterator(const set& source, unsigned position) : base_iterator(source, position) {}
+    iterator(const set& source, uint position) : base_iterator(source, position) {}
+    auto operator*() const -> T& { return base_iterator::stack.right()->value; }
   };
 
-  iterator begin() { return iterator(*this, 0); }
-  iterator end() { return iterator(*this, size()); }
+  auto begin() -> iterator { return iterator(*this, 0); }
+  auto end() -> iterator { return iterator(*this, size()); }
 
   struct const_iterator : base_iterator {
-    const T& operator*() const { return base_iterator::stack.last()->value; }
-    const_iterator(const set& source, unsigned position) : base_iterator(source, position) {}
+    const_iterator(const set& source, uint position) : base_iterator(source, position) {}
+    auto operator*() const -> const T& { return base_iterator::stack.right()->value; }
   };
 
-  const const_iterator begin() const { return const_iterator(*this, 0); }
-  const const_iterator end() const { return const_iterator(*this, size()); }
+  auto begin() const -> const const_iterator { return const_iterator(*this, 0); }
+  auto end() const -> const const_iterator { return const_iterator(*this, size()); }
 
 private:
-  void reset(node_t*& node) {
+  auto reset(node_t*& node) -> void {
     if(!node) return;
     if(node->link[0]) reset(node->link[0]);
     if(node->link[1]) reset(node->link[1]);
@@ -139,13 +151,7 @@ private:
     node = nullptr;
   }
 
-  void copy(const set& source) {
-    reset();
-    copy(root, source.root);
-    nodes = source.nodes;
-  }
-
-  void copy(node_t*& target, const node_t* source) {
+  auto copy(node_t*& target, const node_t* source) -> void {
     if(!source) return;
     target = new node_t(source->value);
     target->red = source->red;
@@ -153,23 +159,16 @@ private:
     copy(target->link[1], source->link[1]);
   }
 
-  void move(set&& source) {
-    root = source.root;
-    nodes = source.nodes;
-    source.root = nullptr;
-    source.nodes = 0;
-  }
-
-  node_t* find(node_t* node, const T& value) const {
+  auto find(node_t* node, const T& value) const -> node_t* {
     if(node == nullptr) return nullptr;
     if(node->value == value) return node;
     return find(node->link[node->value < value], value);
   }
 
-  bool red(node_t* node) const { return node && node->red; }
-  bool black(node_t* node) const { return !red(node); }
+  auto red(node_t* node) const -> bool { return node && node->red; }
+  auto black(node_t* node) const -> bool { return !red(node); }
 
-  void rotate(node_t*& a, bool dir) {
+  auto rotate(node_t*& a, bool dir) -> void {
     node_t*& b = a->link[!dir];
     node_t*& c = b->link[dir];
     a->red = 1, b->red = 0;
@@ -177,12 +176,12 @@ private:
     std::swap(b, c);
   }
 
-  void rotateTwice(node_t*& node, bool dir) {
+  auto rotateTwice(node_t*& node, bool dir) -> void {
     rotate(node->link[!dir], !dir);
     rotate(node, dir);
   }
 
-  node_t* insert(node_t*& node, const T& value) {
+  auto insert(node_t*& node, const T& value) -> node_t* {
     if(!node) { nodes++; node = new node_t(value); return node; }
     if(node->value == value) { node->value = value; return node; }  //prevent duplicate entries
 
@@ -203,7 +202,7 @@ private:
     return v;
   }
 
-  void balance(node_t*& node, bool dir, bool& done) {
+  auto balance(node_t*& node, bool dir, bool& done) -> void {
     node_t* p = node;
     node_t* s = node->link[!dir];
     if(!s) return;
@@ -234,7 +233,7 @@ private:
     }
   }
 
-  void remove(node_t*& node, const T* value, bool& done) {
+  auto remove(node_t*& node, const T* value, bool& done) -> void {
     if(!node) { done = 1; return; }
 
     if(node->value == *value) {
@@ -263,5 +262,3 @@ private:
 };
 
 }
-
-#endif

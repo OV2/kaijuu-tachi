@@ -1,57 +1,62 @@
-#ifdef NALL_MOSAIC_INTERNAL_HPP
+#pragma once
 
-namespace nall {
-namespace mosaic {
+namespace nall { namespace mosaic {
 
 struct context {
-  unsigned offset;
-  unsigned width;
-  unsigned height;
-  unsigned count;
+  context() {
+    reset();
+  }
 
-  bool endian;     //0 = lsb, 1 = msb
-  bool order;      //0 = linear, 1 = planar
-  unsigned depth;  //1 - 24bpp
-
-  unsigned blockWidth;
-  unsigned blockHeight;
-  unsigned blockStride;
-  unsigned blockOffset;
-  vector<unsigned> block;
-
-  unsigned tileWidth;
-  unsigned tileHeight;
-  unsigned tileStride;
-  unsigned tileOffset;
-  vector<unsigned> tile;
-
-  unsigned mosaicWidth;
-  unsigned mosaicHeight;
-  unsigned mosaicStride;
-  unsigned mosaicOffset;
-  vector<unsigned> mosaic;
-
-  unsigned paddingWidth;
-  unsigned paddingHeight;
-  unsigned paddingColor;
-  vector<unsigned> palette;
-
-  unsigned objectWidth() const { return blockWidth * tileWidth * mosaicWidth + paddingWidth; }
-  unsigned objectHeight() const { return blockHeight * tileHeight * mosaicHeight + paddingHeight; }
-  unsigned objectSize() const {
-    unsigned size = blockStride * tileWidth * tileHeight * mosaicWidth * mosaicHeight
-                  + blockOffset * tileHeight * mosaicWidth * mosaicHeight
-                  + tileStride * mosaicWidth * mosaicHeight
-                  + tileOffset * mosaicHeight;
+  auto objectWidth() const -> uint { return blockWidth * tileWidth * mosaicWidth + paddingWidth; }
+  auto objectHeight() const -> uint { return blockHeight * tileHeight * mosaicHeight + paddingHeight; }
+  auto objectSize() const -> uint {
+    uint size = blockStride * tileWidth * tileHeight * mosaicWidth * mosaicHeight
+              + blockOffset * tileHeight * mosaicWidth * mosaicHeight
+              + tileStride * mosaicWidth * mosaicHeight
+              + tileOffset * mosaicHeight;
     return max(1u, size);
   }
 
-  unsigned eval(const string& expression) {
+  auto reset() -> void {
+    offset = 0;
+    width = 0;
+    height = 0;
+    count = 0;
+
+    endian = 1;
+    order = 0;
+    depth = 1;
+
+    blockWidth = 1;
+    blockHeight = 1;
+    blockStride = 0;
+    blockOffset = 0;
+    block.reset();
+
+    tileWidth = 1;
+    tileHeight = 1;
+    tileStride = 0;
+    tileOffset = 0;
+    tile.reset();
+
+    mosaicWidth = 1;
+    mosaicHeight = 1;
+    mosaicStride = 0;
+    mosaicOffset = 0;
+    mosaic.reset();
+
+    paddingWidth = 0;
+    paddingHeight = 0;
+    paddingColor = 0;
+    palette.reset();
+  }
+
+  auto eval(const string& expression) -> uint {
     if(auto result = Eval::integer(expression)) return result();
     return 0u;
   }
 
-  void eval(vector<unsigned>& buffer, const string& expression_) {
+  auto eval(vector<uint>& buffer, const string& expression_) -> void {
     string expression = expression_;
     bool function = false;
     for(auto& c : expression) {
@@ -60,22 +65,21 @@ struct context {
       if(c == ',' && function == true) c = ';';
     }
 
-    lstring list = expression.split(",");
+    auto list = expression.split(",");
     for(auto& item : list) {
-      item.trim();
+      item.strip();
       if(item.match("f(?*) ?*")) {
-        item.ltrim<1>("f(");
-        lstring part = item.split<1>(") ");
-        lstring args = part[0].split<3>(";");
-        for(auto &item : args) item.trim();
+        item.trimLeft("f(", 1L);
+        auto part = item.split(") ", 1L);
+        auto args = part[0].split(";", 3L).strip();
 
-        unsigned length = eval(args(0, "0"));
-        unsigned offset = eval(args(1, "0"));
-        unsigned stride = eval(args(2, "0"));
+        uint length = eval(args(0, "0"));
+        uint offset = eval(args(1, "0"));
+        uint stride = eval(args(2, "0"));
         if(args.size() < 2) offset = buffer.size();
         if(args.size() < 3) stride = 1;
 
-        for(unsigned n = 0; n < length; n++) {
+        for(uint n = 0; n < length; n++) {
           string fn = part[1];
           fn.replace("n", string{n});
           fn.replace("o", string{offset});
@@ -85,15 +89,15 @@ struct context {
           offset += stride;
         }
       } else if(item.match("base64*")) {
-        unsigned offset = 0;
-        item.ltrim<1>("base64");
+        uint offset = 0;
+        item.trimLeft("base64", 1L);
         if(item.match("(?*) *")) {
-          item.ltrim<1>("(");
-          lstring part = item.split<1>(") ");
+          item.trimLeft("(", 1L);
+          auto part = item.split(") ", 1L);
           offset = eval(part[0]);
           item = part(1, "");
         }
-        item.trim();
+        item.strip();
         for(auto& c : item) {
           if(c >= 'A' && c <= 'Z') buffer.append(offset + c - 'A' +  0);
           if(c >= 'a' && c <= 'z') buffer.append(offset + c - 'a' + 26);
@@ -102,24 +106,22 @@ struct context {
           if(c == '_') buffer.append(offset + 63);
         }
       } else if(item.match("file *")) {
-        item.ltrim<1>("file ");
-        item.trim();
+        item.trimLeft("file ", 1L);
+        item.strip();
         //...
-      } else if(item.empty() == false) {
+      } else if(item) {
         buffer.append(eval(item));
       }
     }
   }
 
-  void parse(const string& data) {
+  auto parse(const string& data) -> void {
     reset();
 
-    lstring lines = data.split("\n");
+    auto lines = data.split("\n");
     for(auto& line : lines) {
-      lstring part = line.split<1>(":");
+      auto part = line.split(":", 1L).strip();
       if(part.size() != 2) continue;
-      part[0].trim();
-      part[1].trim();
 
       if(part[0] == "offset") offset = eval(part[1]);
       if(part[0] == "width") width = eval(part[1]);
@@ -157,14 +159,15 @@ struct context {
     sanitize();
   }
 
-  bool load(const string& filename) {
-    string filedata = string::read(filename);
-    if(filedata.empty()) return false;
-    parse(filedata);
-    return true;
+  auto load(const string& filename) -> bool {
+    if(auto filedata = string::read(filename)) {
+      parse(filedata);
+      return true;
+    }
+    return false;
   }
 
-  void sanitize() {
+  auto sanitize() -> void {
     if(depth < 1) depth = 1;
     if(depth > 24) depth = 24;
 
@@ -182,46 +185,37 @@ struct context {
     for(auto& color : palette) color |= 255u << 24;
   }
 
-  void reset() {
-    offset = 0;
-    width = 0;
-    height = 0;
-    count = 0;
+  uint offset;
+  uint width;
+  uint height;
+  uint count;
 
-    endian = 1;
-    order = 0;
-    depth = 1;
+  bool endian;  //0 = lsb, 1 = msb
+  bool order;   //0 = linear, 1 = planar
+  uint depth;   //1 - 24bpp
 
-    blockWidth = 1;
-    blockHeight = 1;
-    blockStride = 0;
-    blockOffset = 0;
-    block.reset();
+  uint blockWidth;
+  uint blockHeight;
+  uint blockStride;
+  uint blockOffset;
+  vector<uint> block;
 
-    tileWidth = 1;
-    tileHeight = 1;
-    tileStride = 0;
-    tileOffset = 0;
-    tile.reset();
+  uint tileWidth;
+  uint tileHeight;
+  uint tileStride;
+  uint tileOffset;
+  vector<uint> tile;
 
-    mosaicWidth = 1;
-    mosaicHeight = 1;
-    mosaicStride = 0;
-    mosaicOffset = 0;
-    mosaic.reset();
+  uint mosaicWidth;
+  uint mosaicHeight;
+  uint mosaicStride;
+  uint mosaicOffset;
+  vector<uint> mosaic;
 
-    paddingWidth = 0;
-    paddingHeight = 0;
-    paddingColor = 0;
-    palette.reset();
-  }
-
-  context() {
-    reset();
-  }
+  uint paddingWidth;
+  uint paddingHeight;
+  uint paddingColor;
+  vector<uint> palette;
 };
 
-}
-}
-
-#endif
+}}

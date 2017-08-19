@@ -1,7 +1,7 @@
-#ifndef NALL_DIRECTORY_HPP
-#define NALL_DIRECTORY_HPP
+#pragma once
 
 #include <nall/file.hpp>
+#include <nall/inode.hpp>
 #include <nall/intrinsics.hpp>
 #include <nall/sort.hpp>
 #include <nall/string.hpp>
@@ -17,47 +17,47 @@
 
 namespace nall {
 
-struct directory {
-  static bool create(const string& pathname, unsigned permissions = 0755);  //recursive
-  static bool remove(const string& pathname);  //recursive
-  static bool exists(const string& pathname);
+struct directory : inode {
+  static auto create(const string& pathname, uint permissions = 0755) -> bool;  //recursive
+  static auto remove(const string& pathname) -> bool;  //recursive
+  static auto exists(const string& pathname) -> bool;
 
-  static lstring folders(const string& pathname, const string& pattern = "*") {
-    lstring folders = directory::ufolders(pathname, pattern);
+  static auto folders(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto folders = directory::ufolders(pathname, pattern);
     folders.sort();
     return folders;
   }
 
-  static lstring files(const string& pathname, const string& pattern = "*") {
-    lstring files = directory::ufiles(pathname, pattern);
+  static auto files(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto files = directory::ufiles(pathname, pattern);
     files.sort();
     return files;
   }
 
-  static lstring contents(const string& pathname, const string& pattern = "*") {
-    lstring folders = directory::ufolders(pathname);  //pattern search of contents should only filter files
-    lstring files = directory::ufiles(pathname, pattern);
+  static auto contents(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto folders = directory::ufolders(pathname);  //pattern search of contents should only filter files
+    auto files = directory::ufiles(pathname, pattern);
     folders.sort();
     files.sort();
     for(auto& file : files) folders.append(file);
     return folders;
   }
 
-  static lstring ifolders(const string& pathname, const string& pattern = "*") {
-    lstring folders = ufolders(pathname, pattern);
+  static auto ifolders(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto folders = ufolders(pathname, pattern);
     folders.isort();
     return folders;
   }
 
-  static lstring ifiles(const string& pathname, const string& pattern = "*") {
-    lstring files = ufiles(pathname, pattern);
+  static auto ifiles(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto files = ufiles(pathname, pattern);
     files.isort();
     return files;
   }
 
-  static lstring icontents(const string& pathname, const string& pattern = "*") {
-    lstring folders = directory::ufolders(pathname);  //pattern search of contents should only filter files
-    lstring files = directory::ufiles(pathname, pattern);
+  static auto icontents(const string& pathname, const string& pattern = "*") -> string_vector {
+    auto folders = directory::ufolders(pathname);  //pattern search of contents should only filter files
+    auto files = directory::ufiles(pathname, pattern);
     folders.isort();
     files.isort();
     for(auto& file : files) folders.append(file);
@@ -66,24 +66,25 @@ struct directory {
 
 private:
   //internal functions; these return unsorted lists
-  static lstring ufolders(const string& pathname, const string& pattern = "*");
-  static lstring ufiles(const string& pathname, const string& pattern = "*");
+  static auto ufolders(const string& pathname, const string& pattern = "*") -> string_vector;
+  static auto ufiles(const string& pathname, const string& pattern = "*") -> string_vector;
 };
 
 #if defined(PLATFORM_WINDOWS)
-  inline bool directory::create(const string& pathname, unsigned permissions) {
+  inline auto directory::create(const string& pathname, uint permissions) -> bool {
     string path;
-    lstring list = string{pathname}.transform("\\", "/").rtrim<1>("/").split("/");
+    auto list = string{pathname}.transform("\\", "/").trimRight("/").split("/");
     bool result = true;
     for(auto& part : list) {
       path.append(part, "/");
+      if(directory::exists(path)) continue;
       result &= (_wmkdir(utf16_t(path)) == 0);
     }
     return result;
   }
 
-  inline bool directory::remove(const string& pathname) {
-    lstring list = directory::contents(pathname);
+  inline auto directory::remove(const string& pathname) -> bool {
+    auto list = directory::contents(pathname);
     for(auto& name : list) {
       if(name.endsWith("/")) directory::remove({pathname, name});
       else file::remove({pathname, name});
@@ -91,19 +92,31 @@ private:
     return _wrmdir(utf16_t(pathname)) == 0;
   }
 
-  inline bool directory::exists(const string& pathname) {
+  inline auto directory::exists(const string& pathname) -> bool {
     string name = pathname;
-    name.trim<1>("\"");
+    name.trim("\"", "\"");
     DWORD result = GetFileAttributes(utf16_t(name));
     if(result == INVALID_FILE_ATTRIBUTES) return false;
     return (result & FILE_ATTRIBUTE_DIRECTORY);
   }
 
-  inline lstring directory::ufolders(const string& pathname, const string& pattern) {
-    lstring list;
+  inline auto directory::ufolders(const string& pathname, const string& pattern) -> string_vector {
+    if(!pathname) {
+      //special root pseudo-folder (return list of drives)
+      wchar_t drives[PATH_MAX] = {0};
+      GetLogicalDriveStrings(PATH_MAX, drives);
+      wchar_t* p = drives;
+      while(*p || *(p + 1)) {
+        if(!*p) *p = ';';
+        *p++;
+      }
+      return string{(const char*)utf8_t(drives)}.replace("\\", "/").split(";");
+    }
+
+    string_vector list;
     string path = pathname;
     path.transform("/", "\\");
-    if(!strend(path, "\\")) path.append("\\");
+    if(!path.endsWith("\\")) path.append("\\");
     path.append("*");
     HANDLE handle;
     WIN32_FIND_DATA data;
@@ -129,11 +142,13 @@ private:
     return list;
   }
 
-  inline lstring directory::ufiles(const string& pathname, const string& pattern) {
-    lstring list;
+  inline auto directory::ufiles(const string& pathname, const string& pattern) -> string_vector {
+    if(!pathname) return {};
+
+    string_vector list;
     string path = pathname;
     path.transform("/", "\\");
-    if(!strend(path, "\\")) path.append("\\");
+    if(!path.endsWith("\\")) path.append("\\");
     path.append("*");
     HANDLE handle;
     WIN32_FIND_DATA data;
@@ -154,19 +169,31 @@ private:
     return list;
   }
 #else
-  inline bool directory::create(const string& pathname, unsigned permissions) {
+  inline auto directory_is_folder(DIR* dp, struct dirent* ep) -> bool {
+    if(ep->d_type == DT_DIR) return true;
+    if(ep->d_type == DT_LNK || ep->d_type == DT_UNKNOWN) {
+      //symbolic links must be resolved to determine type
+      struct stat sp = {0};
+      fstatat(dirfd(dp), ep->d_name, &sp, 0);
+      return S_ISDIR(sp.st_mode);
+    }
+    return false;
+  }
+
+  inline auto directory::create(const string& pathname, uint permissions) -> bool {
     string path;
-    lstring list = string{pathname}.rtrim<1>("/").split("/");
+    auto list = string{pathname}.trimRight("/").split("/");
     bool result = true;
     for(auto& part : list) {
       path.append(part, "/");
+      if(directory::exists(path)) continue;
       result &= (mkdir(path, permissions) == 0);
     }
     return result;
   }
 
-  inline bool directory::remove(const string& pathname) {
-    lstring list = directory::contents(pathname);
+  inline auto directory::remove(const string& pathname) -> bool {
+    auto list = directory::contents(pathname);
     for(auto& name : list) {
       if(name.endsWith("/")) directory::remove({pathname, name});
       else file::remove({pathname, name});
@@ -174,15 +201,16 @@ private:
     return rmdir(pathname) == 0;
   }
 
-  inline bool directory::exists(const string& pathname) {
-    DIR *dp = opendir(pathname);
-    if(!dp) return false;
-    closedir(dp);
-    return true;
+  inline auto directory::exists(const string& pathname) -> bool {
+    struct stat data;
+    if(stat(pathname, &data) != 0) return false;
+    return S_ISDIR(data.st_mode);
   }
 
-  inline lstring directory::ufolders(const string& pathname, const string& pattern) {
-    lstring list;
+  inline auto directory::ufolders(const string& pathname, const string& pattern) -> string_vector {
+    if(!pathname) return string_vector{"/"};
+
+    string_vector list;
     DIR* dp;
     struct dirent* ep;
     dp = opendir(pathname);
@@ -190,15 +218,9 @@ private:
       while(ep = readdir(dp)) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
-        bool is_directory = ep->d_type & DT_DIR;
-        if(ep->d_type & DT_UNKNOWN) {
-          struct stat sp = {0};
-          stat(string{pathname, ep->d_name}, &sp);
-          is_directory = S_ISDIR(sp.st_mode);
-        }
-        if(is_directory) {
-          if(strmatch(ep->d_name, pattern)) list.append(ep->d_name);
-        }
+        if(!directory_is_folder(dp, ep)) continue;
+        string name{ep->d_name};
+        if(name.match(pattern)) list.append(std::move(name));
       }
       closedir(dp);
     }
@@ -206,8 +228,10 @@ private:
     return list;
   }
 
-  inline lstring directory::ufiles(const string& pathname, const string& pattern) {
-    lstring list;
+  inline auto directory::ufiles(const string& pathname, const string& pattern) -> string_vector {
+    if(!pathname) return {};
+
+    string_vector list;
     DIR* dp;
     struct dirent* ep;
     dp = opendir(pathname);
@@ -215,9 +239,9 @@ private:
       while(ep = readdir(dp)) {
         if(!strcmp(ep->d_name, ".")) continue;
         if(!strcmp(ep->d_name, "..")) continue;
-        if((ep->d_type & DT_DIR) == 0) {
-          if(strmatch(ep->d_name, pattern)) list.append(ep->d_name);
-        }
+        if(directory_is_folder(dp, ep)) continue;
+        string name{ep->d_name};
+        if(name.match(pattern)) list.append(std::move(name));
       }
       closedir(dp);
     }
@@ -226,5 +250,3 @@ private:
 #endif
 
 }
-
-#endif

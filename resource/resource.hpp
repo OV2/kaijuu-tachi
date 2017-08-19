@@ -1,3 +1,3 @@
 namespace resource {
-  extern const uint8_t icon[13013];
+  extern const nall::vector<uint8_t> icon;
 };

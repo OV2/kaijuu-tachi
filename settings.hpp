@@ -10,9 +10,9 @@ struct Settings {
   };
   vector<Rule> rules;
 
-  void load() {
+  auto load() -> void {
     rules.reset();
-    lstring ruleIDs = registry::contents("HKCU/Software/Kaijuu/");
+    string_vector ruleIDs = registry::contents("HKCU/Software/Kaijuu/");
     for(auto &ruleID : ruleIDs) {
       string path = {"HKCU/Software/Kaijuu/", ruleID, "/"};
       rules.append({
@@ -29,11 +29,11 @@ struct Settings {
     }
   }
 
-  void save() {
+  auto save() -> void {
     registry::remove("HKCU/Software/Kaijuu/");
-    for(unsigned id = 0; id < rules.size(); id++) {
+    for(uint id = 0; id < rules.size(); id++) {
       auto &rule = rules(id);
-      string path = {"HKCU/Software/Kaijuu/", format<3,'0'>(id), "/"};
+      string path = {"HKCU/Software/Kaijuu/", pad(id, 3, '0'), "/"};
       registry::write({path, "Name"}, rule.name);
       registry::write({path, "Pattern"}, rule.pattern);
       registry::write({path, "Default"}, rule.defaultAction);

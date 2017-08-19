@@ -52,8 +52,8 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataOb
     for(unsigned i = 0; i < count; i++) {
       DragQueryFileW((HDROP)medium.hGlobal, i, filename, PATH_MAX);
       string name = (const char*)utf8_t(filename);
-      name.transform("/", "\\");
-      if(name.endsWith("\\")) name.rtrim<1>("\\");
+      name.transform("\\", "/");
+      if(name.endsWith("/")) name.trimRight("/");
       fileList.append(name);
     }
     GlobalUnlock(medium.hGlobal);
@@ -98,20 +98,27 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
   auto &rule = settings.rules(ruleIDs(id));
 
   string nameID = fileList(0);
-  string pathnameID = dir(nameID).rtrim<1>("\\");
-  string filenameID = notdir(nameID);
-  string basenameID = notdir(nall::basename(nameID));
-  string extensionID = extension(nameID);
+  string pathnameID = Location::path(nameID).trimRight("\\");
+  string filenameID = Location::file(nameID);
+  string basenameID = Location::prefix(nameID);
+  string extensionID = Location::suffix(nameID).trimLeft(".");
+
+  nameID.transform("/", "\\");
+  pathnameID.transform("/", "\\");
+  filenameID.transform("/", "\\");
+  basenameID.transform("/", "\\");
+  extensionID.transform("/", "\\");
 
   string pathID = {"\"", pathnameID, "\""};
   string fileID = {"\"", nameID, "\""};
 
   string pathsID, filesID;
-  for(auto &filename : fileList) pathsID.append("\"", dir(filename).rtrim<1>("\\"), "\"", " ");
+  for(auto &filename : fileList) pathsID.append("\"", Location::path(filename).trimRight("\\"), "\"", " ");
   for(auto &filename : fileList) filesID.append("\"", filename, "\"", " ");
-  pathsID.rtrim<1>(" "), filesID.rtrim<1>(" ");
+  pathsID.trimRight(" ").transform("/", "\\");
+  filesID.trimRight(" ");
 
-  lstring params = rule.command.qsplit<1>(" ");
+  auto params = rule.command.qsplit(" ", 1);
   params(1).replace("{name}", nameID);
   params(1).replace("{pathname}", pathnameID);
   params(1).replace("{filename}", filenameID);
@@ -152,9 +159,9 @@ vector<unsigned> CShellExt::matchedRules() {
           break;
         }
       }
-      name = notdir(name);
+      name = Location::file(name);
 
-      lstring patternList = rule.pattern.split(";");
+      auto patternList = rule.pattern.split(";");
       bool found = false;
       for(auto &pattern : patternList) {
         if(name.match(pattern)) {
