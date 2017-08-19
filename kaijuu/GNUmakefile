@@ -1,8 +1,8 @@
 build := release
-include nall/GNUmakefile
-include hiro/GNUmakefile
+include ../nall/GNUmakefile
+include ../hiro/GNUmakefile
 
-flags += -I.
+flags += -I..
 
 ifneq ($(platform),windows)
   $(error "kaijuu is only for Windows")
@@ -32,7 +32,7 @@ obj/resource.o:
 	windres data/resource.rc obj/resource.o
 
 obj/hiro.o:
-	$(compiler) $(hiroflags) -o obj/hiro.o -c hiro/hiro.cpp
+	$(compiler) $(hiroflags) -o obj/hiro.o -c ../hiro/hiro.cpp
 
 resource: force
 	sourcery resource/resource.bml resource/resource.cpp resource/resource.hpp
