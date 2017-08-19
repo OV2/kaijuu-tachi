@@ -37,16 +37,20 @@ struct Application : Window {
 
 struct KaijuuAssociation : Window {
   VerticalLayout layout;
+    HorizontalLayout descriptionLayout;
+      Label descriptionLabel;
+      LineEdit descriptionValue;
     HorizontalLayout filterLayout;
       Label filterLabel;
       LineEdit filterValue;
-      Button filterHelp;
     HorizontalLayout associationLayout;
       Label associationLabel;
       LineEdit associationValue;
       Button associationSelect;
     HorizontalLayout controlLayout;
+      CheckBox defaultAction;
       Widget spacer;
+      Button helpButton;
       Button assignButton;
 
   KaijuuAssociation();

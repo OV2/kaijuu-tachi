@@ -12,61 +12,40 @@
   #define KEY_WOW64_32KEY 0x0200
 #endif
 
+#ifndef NWR_FLAGS
+  #define NWR_FLAGS KEY_WOW64_64KEY
+#endif
+
+#ifndef NWR_SIZE
+  #define NWR_SIZE 4096
+#endif
+
 namespace nall {
 
 struct registry {
-  static void tree(const string &key, const string &data = "") {
-    lstring part = key.split("/");
-    string path;
-    HKEY handle, rootKey = root(part[0]);
-    DWORD disposition;
-    for(unsigned i = 1; i < part.size(); i++) {
-      path.append(part[i]);
-      if(RegCreateKeyExW(rootKey, utf16_t(path), 0, NULL, 0, KEY_WOW64_64KEY | KEY_ALL_ACCESS, NULL, &handle, &disposition) == ERROR_SUCCESS) {
-        if(i == part.size() - 1) {
-          RegSetValueExW(handle, NULL, 0, REG_SZ, (BYTE*)(wchar_t*)utf16_t(data), (data.length() + 1) * sizeof(wchar_t));
-        }
-        RegCloseKey(handle);
-      }
-      path.append("\\");
-    }
-  }
-
-  static void leaf(const string &key, const string &data = "") {
-    lstring part = key.split("/");
-    string path;
-    HKEY handle, rootKey = root(part[0]);
-    DWORD disposition;
-    for(unsigned i = 1; i < part.size() - 1; i++) {
-      path.append(part[i]);
-      if(RegCreateKeyExW(rootKey, utf16_t(path), 0, NULL, 0, KEY_WOW64_64KEY | KEY_ALL_ACCESS, NULL, &handle, &disposition) == ERROR_SUCCESS) {
-        if(i == part.size() - 2) {
-          RegSetValueExW(handle, utf16_t(part[i + 1]), 0, REG_SZ, (BYTE*)(wchar_t*)utf16_t(data), (data.length() + 1) * sizeof(wchar_t));
-        }
-        RegCloseKey(handle);
-      }
-      path.append("\\");
-    }
-  }
-
-  static string read(const string &key) {
-    lstring part = key.split("/");
-    HKEY handle, rootKey = root(part[0]);
-    part.remove(0);
+  static bool exists(const string &name) {
+    lstring part = name.split("/");
+    HKEY handle, rootKey = root(part.take(0));
+    string node = part.take();
     string path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      wchar_t data[PATH_MAX] = L"";
-      DWORD size = PATH_MAX * sizeof(wchar_t);
-      LONG result = RegQueryValueExW(handle, NULL, NULL, NULL, (LPBYTE)&data, (LPDWORD)&size);
+    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
+      wchar_t data[NWR_SIZE] = L"";
+      DWORD size = NWR_SIZE * sizeof(wchar_t);
+      LONG result = RegQueryValueExW(handle, utf16_t(node), NULL, NULL, (LPBYTE)&data, (LPDWORD)&size);
       RegCloseKey(handle);
-      if(result == ERROR_SUCCESS) return (const char*)utf8_t(data);
+      if(result == ERROR_SUCCESS) return true;
     }
-    string node = part[part.size() - 1];
-    part.remove(part.size() - 1);
-    path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      wchar_t data[PATH_MAX] = L"";
-      DWORD size = PATH_MAX * sizeof(wchar_t);
+    return false;
+  }
+
+  static string read(const string &name) {
+    lstring part = name.split("/");
+    HKEY handle, rootKey = root(part.take(0));
+    string node = part.take();
+    string path = part.concatenate("\\");
+    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
+      wchar_t data[NWR_SIZE] = L"";
+      DWORD size = NWR_SIZE * sizeof(wchar_t);
       LONG result = RegQueryValueExW(handle, utf16_t(node), NULL, NULL, (LPBYTE)&data, (LPDWORD)&size);
       RegCloseKey(handle);
       if(result == ERROR_SUCCESS) return (const char*)utf8_t(data);
@@ -74,75 +53,50 @@ struct registry {
     return "";
   }
 
-  static bool exists(const string &key) {
-    lstring part = key.split("/");
-    HKEY handle, rootKey = root(part[0]);
-    part.remove(0);
-    string path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      wchar_t data[PATH_MAX] = L"";
-      DWORD size = PATH_MAX * sizeof(wchar_t);
-      LONG result = RegQueryValueExW(handle, NULL, NULL, NULL, (LPBYTE)&data, (LPDWORD)&size);
-      RegCloseKey(handle);
-      if(result == ERROR_SUCCESS) return true;
-    }
-    string node = part[part.size() - 1];
-    part.remove(part.size() - 1);
-    path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      wchar_t data[PATH_MAX] = L"";
-      DWORD size = PATH_MAX * sizeof(wchar_t);
-      LONG result = RegQueryValueExW(handle, utf16_t(node), NULL, NULL, (LPBYTE)&data, (LPDWORD)&size);
-      RegCloseKey(handle);
-      if(result == ERROR_SUCCESS) return true;
-    }
-    return false;
-  }
-
-  static bool remove(const string &key) {
-    lstring part = key.split("/");
-    HKEY rootKey = root(part[0]);
-    part.remove(0);
-    string path = part.concatenate("\\");
-    if(SHDeleteKeyW(rootKey, utf16_t(path)) == ERROR_SUCCESS) return true;
-    string node = part[part.size() - 1];
-    part.remove(part.size() - 1);
-    path = part.concatenate("\\");
-    if(SHDeleteValueW(rootKey, utf16_t(path), utf16_t(node)) == ERROR_SUCCESS) return true;
-    return false;
-  }
-
-  static lstring trees(const string &key) {
-    lstring part = key.split("/"), result;
-    HKEY handle, rootKey = root(part[0]);
-    part.remove(0);
-    string path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      DWORD trees, leaves;
-      RegQueryInfoKey(handle, NULL, NULL, NULL, &trees, NULL, NULL, &leaves, NULL, NULL, NULL, NULL);
-      for(unsigned index = 0; index < trees; index++) {
-        wchar_t name[MAX_PATH] = L"";
-        DWORD size = MAX_PATH * sizeof(wchar_t);
-        RegEnumKeyEx(handle, index, (wchar_t*)&name, &size, NULL, NULL, NULL, NULL);
-        result.append((const char*)utf8_t(name));
+  static void write(const string &name, const string &data = "") {
+    lstring part = name.split("/");
+    HKEY handle, rootKey = root(part.take(0));
+    string node = part.take(), path;
+    DWORD disposition;
+    for(unsigned n = 0; n < part.size(); n++) {
+      path.append(part[n]);
+      if(RegCreateKeyExW(rootKey, utf16_t(path), 0, NULL, 0, NWR_FLAGS | KEY_ALL_ACCESS, NULL, &handle, &disposition) == ERROR_SUCCESS) {
+        if(n == part.size() - 1) {
+          RegSetValueExW(handle, utf16_t(node), 0, REG_SZ, (BYTE*)(wchar_t*)utf16_t(data), (data.length() + 1) * sizeof(wchar_t));
+        }
+        RegCloseKey(handle);
       }
-      RegCloseKey(handle);
+      path.append("\\");
     }
-    return result;
   }
 
-  static lstring leaves(const string &key) {
-    lstring part = key.split("/"), result;
-    HKEY handle, rootKey = root(part[0]);
-    part.remove(0);
+  static bool remove(const string &name) {
+    lstring part = name.split("/");
+    HKEY rootKey = root(part.take(0));
+    string node = part.take();
     string path = part.concatenate("\\");
-    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, KEY_WOW64_64KEY | KEY_READ, &handle) == ERROR_SUCCESS) {
-      DWORD trees, leaves;
-      RegQueryInfoKey(handle, NULL, NULL, NULL, &trees, NULL, NULL, &leaves, NULL, NULL, NULL, NULL);
-      for(unsigned index = 0; index < leaves; index++) {
-        wchar_t name[MAX_PATH] = L"";
-        DWORD size = MAX_PATH * sizeof(wchar_t);
-        RegEnumValueW(handle, index, (wchar_t*)&name, &size, NULL, NULL, NULL, NULL);
+    if(node.empty()) return SHDeleteKeyW(rootKey, utf16_t(path)) == ERROR_SUCCESS;
+    return SHDeleteValueW(rootKey, utf16_t(path), utf16_t(node)) == ERROR_SUCCESS;
+  }
+
+  static lstring contents(const string &name) {
+    lstring part = name.split("/"), result;
+    HKEY handle, rootKey = root(part.take(0));
+    part.remove();
+    string path = part.concatenate("\\");
+    if(RegOpenKeyExW(rootKey, utf16_t(path), 0, NWR_FLAGS | KEY_READ, &handle) == ERROR_SUCCESS) {
+      DWORD folders, nodes;
+      RegQueryInfoKey(handle, NULL, NULL, NULL, &folders, NULL, NULL, &nodes, NULL, NULL, NULL, NULL);
+      for(unsigned n = 0; n < folders; n++) {
+        wchar_t name[NWR_SIZE] = L"";
+        DWORD size = NWR_SIZE * sizeof(wchar_t);
+        RegEnumKeyEx(handle, n, (wchar_t*)&name, &size, NULL, NULL, NULL, NULL);
+        result.append({(const char*)utf8_t(name), "/"});
+      }
+      for(unsigned n = 0; n < nodes; n++) {
+        wchar_t name[NWR_SIZE] = L"";
+        DWORD size = NWR_SIZE * sizeof(wchar_t);
+        RegEnumValueW(handle, n, (wchar_t*)&name, &size, NULL, NULL, NULL, NULL);
         result.append((const char*)utf8_t(name));
       }
       RegCloseKey(handle);

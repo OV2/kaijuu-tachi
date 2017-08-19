@@ -43,21 +43,24 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataOb
 STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) {
   if(fileList.size() == 1) {
     string filename = fileList(0);
-    lstring associations = registry::leaves("HKCU/Software/Kaijuu");
-    for(auto &association : associations) {
-      if(filename.wildcard(association)) {
-        string program = registry::read({"HKCU/Software/Kaijuu/", association});
-        if(program.empty() == false) {
-          MENUITEMINFOW mii = {0};
-          mii.fMask = MIIM_STRING | MIIM_ID;
-          mii.cbSize = sizeof(mii);
-          mii.wID = idCmdFirst + IDM_CFOPEN;
-          static wchar_t s[] = L"Open with kaijuu";
-          mii.dwTypeData = s;
-          InsertMenuItemW(hMenu, indexMenu, TRUE, &mii);
-          SetMenuDefaultItem(hMenu, indexMenu, TRUE);
-          return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(1));
-        }
+    lstring rules = registry::contents("HKCU/Software/Kaijuu/");
+    for(auto &rule : rules) {
+      string path = {"HKCU/Software/Kaijuu/", rule};
+      string filter = string{rule}.rtrim<1>("/");
+      bool makeDefault = registry::read({path, "Default"}) == "true";
+      string association = registry::read({path, "Association"});
+      string description = registry::read({path, "Description"});
+
+      if(filename.wildcard(filter) && association.empty() == false) {
+        MENUITEMINFOW mii = {0};
+        mii.fMask = MIIM_STRING | MIIM_ID;
+        mii.cbSize = sizeof(mii);
+        mii.wID = idCmdFirst + IDM_CFOPEN;
+        utf16_t s(description);
+        mii.dwTypeData = s;
+        InsertMenuItemW(hMenu, indexMenu, TRUE, &mii);
+        if(makeDefault) SetMenuDefaultItem(hMenu, indexMenu, TRUE);
+        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(1));
       }
     }
   }
@@ -143,12 +146,17 @@ void CShellExt::getFileNamesFromPdata(LPDATAOBJECT pDataObject) {
 
 void CShellExt::cartridgeFolderOpen() {
   string filename = fileList(0);
-  lstring associations = registry::leaves("HKCU/Software/Kaijuu");
-  for(auto &association : associations) {
-    if(filename.wildcard(association)) {
-      string program = registry::read({"HKCU/Software/Kaijuu/", association});
-      filename = {"\"", fileList(0), "\""};
-      if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(program), utf16_t(filename), NULL, SW_SHOWNORMAL) <= 32) {
+  lstring rules = registry::contents("HKCU/Software/Kaijuu/");
+  for(auto &rule : rules) {
+    string path = {"HKCU/Software/Kaijuu/", rule};
+    string filter = string{rule}.rtrim<1>("/");
+
+    if(filename.wildcard(filter)) {
+      string program = registry::read({path, "Association"});
+      lstring params = program.qsplit<1>(" ");
+      params(1).replace("{path}", fileList(0));
+
+      if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), NULL, SW_SHOWNORMAL) <= 32) {
         MessageBoxW(0, L"Error opening associated program.", L"kaijuu", MB_OK);
       }
       return;
