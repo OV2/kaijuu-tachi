@@ -6,30 +6,20 @@ vector<uint16_t> pKeyboard::keycodes;
 
 auto pKeyboard::poll() -> vector<bool> {
   vector<bool> result;
-  for(auto& code : keycodes) result.append(pressed(code));
+  for(auto& code : keycodes) result.append(_pressed(code));
   return result;
 }
 
 auto pKeyboard::pressed(unsigned code) -> bool {
+  return _pressed(keycodes[code]);
+}
+
+auto pKeyboard::_pressed(uint16_t code) -> bool {
   uint8_t lo = code >> 0;
   uint8_t hi = code >> 8;
   if(lo && GetAsyncKeyState(lo) & 0x8000) return true;
   if(hi && GetAsyncKeyState(hi) & 0x8000) return true;
   return false;
-}
-
-auto pKeyboard::initialize() -> void {
-  auto append = [](unsigned lo, unsigned hi = 0) {
-    keycodes.append(lo << 0 | hi << 8);
-  };
-
-  #define map(name, ...) if(key == name) { append(__VA_ARGS__); continue; }
-  for(auto& key : Keyboard::keys) {
-    #include <hiro/platform/windows/keyboard.hpp>
-  //print("[hiro/windows] warning: unhandled key: ", key, "\n");
-    append(0);
-  }
-  #undef map
 }
 
 auto pKeyboard::_translate(unsigned code, unsigned flags) -> signed {
@@ -92,6 +82,20 @@ auto pKeyboard::_translate(unsigned code, unsigned flags) -> signed {
   }
 
   return 0;
+}
+
+auto pKeyboard::initialize() -> void {
+  auto append = [](unsigned lo, unsigned hi = 0) {
+    keycodes.append(lo << 0 | hi << 8);
+  };
+
+  #define map(name, ...) if(key == name) { append(__VA_ARGS__); continue; }
+  for(auto& key : Keyboard::keys) {
+    #include <hiro/platform/windows/keyboard.hpp>
+  //print("[hiro/windows] warning: unhandled key: ", key, "\n");
+    append(0);
+  }
+  #undef map
 }
 
 }

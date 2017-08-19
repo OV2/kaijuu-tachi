@@ -142,16 +142,25 @@ static auto Application_keyboardProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM 
   auto object = (mObject*)GetWindowLongPtr(info.hwndFocus, GWLP_USERDATA);
   if(!object) return false;
 
-  if(auto window = dynamic_cast<mWindow*>(object)) {
+  auto objectWindow = (mObject*)GetWindowLongPtr(GetAncestor(info.hwndFocus, GA_ROOT), GWLP_USERDATA);
+  if(!objectWindow) return false;
+
+  if(auto window = dynamic_cast<mWindow*>(objectWindow)) {
     if(auto self = window->self()) {
       if(!self->_modalityDisabled()) {
         if(auto code = pKeyboard::_translate(wparam, lparam)) {
-          if(msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) window->doKeyPress(code);
-          if(msg == WM_KEYUP || msg == WM_SYSKEYUP) window->doKeyRelease(code);
+          if(msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) {
+            window->doKeyPress(code);
+          }
+          if(msg == WM_KEYUP || msg == WM_SYSKEYUP) {
+            window->doKeyRelease(code);
+          }
+        }
+        if(window->state.dismissable && msg == WM_KEYDOWN && wparam == VK_ESCAPE) {
+          self->onClose();
         }
       }
     }
-    return false;
   }
 
   if(auto window = object->parentWindow(true)) {
@@ -211,7 +220,6 @@ static auto Application_keyboardProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM 
           }
         }
         CloseClipboard();
-        return false;
       }
     }
     #endif

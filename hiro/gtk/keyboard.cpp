@@ -19,7 +19,7 @@ auto pKeyboard::pressed(unsigned code) -> bool {
   #if defined(DISPLAY_XORG)
   XQueryKeymap(pApplication::display, state);
   #endif
-  return _pressed(state, code);
+  return _pressed(state, settings.keycodes[code]);
 }
 
 auto pKeyboard::_pressed(const char* state, uint16_t code) -> bool {

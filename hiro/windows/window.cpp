@@ -67,6 +67,9 @@ auto pWindow::setBackgroundColor(Color color) -> void {
   if(color) hbrush = CreateSolidBrush(hbrushColor);
 }
 
+auto pWindow::setDismissable(bool dismissable) -> void {
+}
+
 auto pWindow::setDroppable(bool droppable) -> void {
   DragAcceptFiles(hwnd, droppable);
 }
@@ -120,11 +123,11 @@ auto pWindow::setGeometry(Geometry geometry) -> void {
     hwnd, nullptr,
     geometry.x() - margin.x(), geometry.y() - margin.y(),
     geometry.width() + margin.width(), geometry.height() + margin.height(),
-    SWP_NOZORDER | SWP_FRAMECHANGED
+    SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED
   );
   if(auto statusBar = state().statusBar) {
     if(auto self = statusBar->self()) {
-      SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_FRAMECHANGED);
+      SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
   }
   if(auto layout = state().layout) {
@@ -159,12 +162,14 @@ auto pWindow::setTitle(string text) -> void {
 }
 
 auto pWindow::setVisible(bool visible) -> void {
+  lock();
   ShowWindow(hwnd, visible ? SW_SHOWNORMAL : SW_HIDE);
   if(!visible) setModal(false);
 
   if(auto layout = state().layout) {
     if(auto self = layout->self()) self->setVisible(layout->visible(true));
   }
+  unlock();
 }
 
 //
@@ -209,7 +214,7 @@ auto pWindow::onSize() -> void {
   if(locked()) return;
   if(auto statusBar = state().statusBar) {
     if(auto self = statusBar->self()) {
-      SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_FRAMECHANGED);
+      SetWindowPos(self->hwnd, nullptr, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_FRAMECHANGED);
     }
   }
   state().geometry.setSize(_geometry().size());

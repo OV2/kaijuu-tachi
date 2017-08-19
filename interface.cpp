@@ -5,7 +5,7 @@ RuleEditor* ruleEditor = nullptr;
 #include "resource/resource.cpp"
 
 Program::Program(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v06r01");
+  setTitle("kaijuu v06r02");
   setFrameGeometry({64, 64, 1024 - 75, 480});
 
   layout.setMargin(5);
@@ -40,7 +40,7 @@ Program::Program(const string &pathname) : pathname(pathname) {
 }
 
 auto Program::synchronize() -> void {
-  if(registry::read({"HKLM/Software/Microsoft/Windows/CurrentVersion/Shell Extensions/Approved/", classID}) == classDescription) {
+  if(registry::read({"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Shell Extensions\\Approved\\", classID}) == classDescription) {
     statusLabel.setText("Extension status: installed");
     installButton.setEnabled(false);
     uninstallButton.setEnabled(true);

@@ -15,7 +15,7 @@ auto pKeyboard::poll() -> vector<bool> {
 auto pKeyboard::pressed(unsigned code) -> bool {
   char state[256];
   XQueryKeymap(pApplication::display, state);
-  return _pressed(state, code);
+  return _pressed(state, settings.keycodes[code]);
 }
 
 auto pKeyboard::_pressed(const char* state, uint16_t code) -> bool {
