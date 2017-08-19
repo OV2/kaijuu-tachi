@@ -1,0 +1,485 @@
+icarus path:C:/higan/icarus.exe
+  supports fc sfc ms md pce sg gb gbc gba gg ws wsc
+
+///////////////////////////////////////////////////////////////////////////////
+// Systems
+///////////////////////////////////////////////////////////////////////////////
+
+system ext=a26 name:Atari 2600
+  rom ext=a26
+    query: board/rom
+  ram ext=sav
+    query: board/ram
+
+system ext=fc name:Famicom
+  rom ext=nes
+    special=nes20 size=0x10
+    query: board/prg/rom
+    special=undersize-prg
+    query: board/chr/rom
+  ram ext=sav
+    query: board/prg/ram
+    query: board/chr/ram
+
+system ext=sfc name:Super Famicom
+  rom ext=sfc
+    //program ROMs
+    query: board/rom
+    query: board/mcc/rom
+    query: board/sa1/rom
+    query: board/superfx/rom
+    query: board/hitachidsp/rom
+    query: board/spc7110/prom
+    query: board/spc7110/drom
+    query: board/sdd1/rom
+    //firmwares
+    query: board/armdsp/prom
+    query: board/armdsp/drom
+    query: board/hitachidsp/drom
+    query: board/necdsp/prom
+    query: board/necdsp/drom
+  ram ext=srm
+    query: board/ram
+    query: board/sa1/bwram
+    query: board/superfx/ram
+    query: board/armdsp/dram
+    query: board/hitachidsp/ram
+    query: board/necdsp(model=uPD96050)/dram
+    query: board/spc7110/ram
+    query: board/sdd1/ram
+    query: board/obc1/ram
+  ram ext=rtc
+    query: board/epsonrtc/ram
+    query: board/sharprtc/ram
+
+system ext=n64 name:Nintendo 64
+  rom ext=n64
+    query: board/rom
+  ram ext=sra name-type=internal
+    query: board/ram(type=sram)
+  ram ext=eep name-type=internal
+    query: board/ram(type=eeprom)
+  ram ext=fla name-type=internal
+    query: board/ram(type=flash)
+
+system ext=sg1000 name:SG-1000
+  rom ext=sg
+    query: board/rom
+  ram ext=ssm
+    query: board/ram
+
+system ext=ms name:Master System
+  rom ext=sms
+    query: board/rom
+  ram ext=ssm
+    query: board/ram
+
+system ext=md name:Mega Drive
+  rom ext=md
+    query: board/rom
+    query: board/ssf2/rom
+    query: board/svp/rom
+    slot index=0
+  ram ext=srm
+    query: board/ram
+    slot index=0
+  slot type=lock-on ext=md query:board/lock-on
+    rom-query: board/rom
+    ram-query: board/ram(type=sram)
+
+system ext=32x name:Super 32X
+  rom ext=32x
+    query: board/rom
+  ram ext=srm
+    query: board/ram
+
+system ext=pce name:PC Engine
+  rom ext=pce
+    query: board/rom
+
+system ext=sg name:SuperGrafx
+  rom ext=sgx
+    query: board/rom
+
+system ext=gb name:Game Boy
+  rom ext=gb
+    query: board/rom
+  ram ext=sav
+    query: board/ram
+
+system ext=gbc name:Game Boy Color
+  rom ext=gbc
+    query: board/rom
+  ram ext=sav
+    query: board/ram
+
+system ext=gba name:Game Boy Advance
+  rom ext=gba
+    query: board/rom
+  ram ext=sav
+    query: board/ram
+
+system ext=nds name:Nintendo DS
+  rom ext=nds
+    query: board/rom
+  ram ext=sav
+    query: board/ram
+
+system ext=gg name:Game Gear
+  rom ext=gg
+    query: board/rom
+  ram ext=sgm
+    query: board/ram
+
+system ext=ws name:WonderSwan
+  rom ext=ws
+    query: board/rom
+  ram ext=sav
+    query: board/ram(type=sram)
+    query: board/ram(type=eeprom)
+
+system ext=wsc name:WonderSwan Color
+  rom ext=wsc
+    query: board/rom
+  ram ext=sav
+    query: board/ram(type=sram)
+    query: board/ram(type=eeprom)
+
+system ext=ngp name:Neo Geo Pocket
+  rom ext=ngp
+    query: board/rom
+  ram ext=ngf
+    query: board/ram
+
+system ext=ngpc name:Neo Geo Pocket Color
+  rom ext=ngc
+    query: board/rom
+  ram ext=ngf
+    query: board/ram
+
+system ext=vs name:VS. System
+  rom ext=nes
+    special=nes20 size=0x10
+    query: side[0]/prg/rom
+    query: side[0]/chr/rom
+    query: side[1]/prg/rom
+    query: side[1]/chr/rom
+  ram ext=sav
+    query: side/prg/ram
+    query: side/chr/ram
+
+system ext=pc10 name:PlayChoice-10
+  rom ext=nes
+    special=nes20 size=0x10
+    query: board/prg/rom
+    query: board/chr/rom
+    query: board/pc10/rom[0]
+    query: board/pc10/rom[1]
+    special=key16 size=0x7
+    special=counter-out size=0x10
+  ram ext=sav
+    query: board/prg/ram
+    query: board/chr/ram
+
+system ext=sfcb name:Super Famicom Box
+  rom ext=sfc
+    //program ROMs
+    query: board/grom
+    query: board/slot[0]/rom
+    query: board/slot[0]/sa1/rom
+    query: board/slot[0]/superfx/rom
+    query: board/slot[1]/rom
+    query: board/slot[1]/sa1/rom
+    query: board/slot[1]/superfx/rom
+    query: board/slot[2]/rom
+    query: board/slot[2]/sa1/rom
+    query: board/slot[2]/superfx/rom
+    query: board/slot[3]/rom
+    query: board/slot[3]/sa1/rom
+    query: board/slot[3]/superfx/rom
+    //firmwares
+    query: board/slot[0]/necdsp/prom
+    query: board/slot[0]/necdsp/drom
+    query: board/slot[1]/necdsp/prom
+    query: board/slot[1]/necdsp/drom
+    query: board/slot[2]/necdsp/prom
+    query: board/slot[2]/necdsp/drom
+    query: board/slot[3]/necdsp/prom
+    query: board/slot[3]/necdsp/drom
+    slot index=0
+  ram ext=srm
+    query: board/slot[0]/ram
+    query: board/slot[0]/sa1/bwram
+    query: board/slot[0]/superfx/ram
+    query: board/slot[1]/rom
+    query: board/slot[1]/sa1/bwram
+    query: board/slot[1]/superfx/ram
+    slot index=0
+  slot type=pss6x ext=sfcb query:board/slot[0]/rom(name=program.rom)
+
+///////////////////////////////////////////////////////////////////////////////
+// Extensions
+///////////////////////////////////////////////////////////////////////////////
+
+extension name=a26
+  emulator=Stella
+
+extension name=nes
+  emulator=Mesen
+  ram-path:C:/Emulation/Famicom/Saves
+
+extension name=sfc
+  emulator=Snes9x
+  ram-path:C:/Emulation/Super Famicom/Saves
+
+extension name=bs
+  emulator=Snes9x
+  ram-path:C:/Emulation/BS Memory/Saves
+
+extension name=st
+  emulator=Snes9x
+  ram-path:C:/Emulation/Sufami Turbo/Saves
+
+extension name=n64
+  emulator=Project64
+  ram-path:C:/Project64/Save
+
+extension name=sg
+  emulator=KegaFusion
+
+extension name=sms
+  emulator=KegaFusion
+
+extension name=md
+  emulator=BlastEm
+
+extension name=32x
+  emulator=KegaFusion
+
+extension name=pce
+  emulator=Mednafen
+
+extension name=sgx
+  emulator=Mednafen
+
+extension name=gb
+  emulator=BGB
+
+extension name=gbc
+  emulator=BGB
+
+extension name=gba
+  emulator=mGBA
+
+extension name=nds
+  emulator=DeSmuME
+  ram-path:C:/DeSmuME/Battery
+
+extension name=gg
+  emulator=KegaFusion
+
+extension name=ws
+  emulator=Oswan
+
+extension name=wsc
+  emulator=Oswan
+
+extension name=ngp
+  emulator=Mednafen
+
+extension name=ngc
+  emulator=Mednafen
+
+///////////////////////////////////////////////////////////////////////////////
+// Emulators
+///////////////////////////////////////////////////////////////////////////////
+
+emulator name=Mednafen
+  path:C:/Mednafen/mednafen.exe
+  ram-path:C:/Mednafen/sav
+  sfc
+    ram-name-format:<name>.<md5>.<ext>
+  ngp
+    ram ext=flash sub=ngf
+      query: board/ram(type=flash)
+    ram-name-format:<name>.<md5>.<ext>
+  ngc
+    ram ext=flash sub=ngf
+      query: board/ram(type=flash)
+    ram-name-format:<name>.<md5>.<ext>
+  ascii
+
+emulator name=Stella
+  path:C:/Stella/Stella.exe
+
+emulator name=Mesen
+  path:C:/Mesen/Mesen.exe
+  ram-path:%MyDocuments%/Mesen/Saves
+  state-path:%MyDocuments%/Mesen/SaveStates
+  state-name:<name>_<ordinal:1>.mst
+
+emulator name=puNES
+  path:C:/puNES/punes64.exe
+  ram ext=prb sub=sav
+    query: board/prg/ram
+    query: board/chr/ram
+  ram-path:%MyDocuments%/puNES/prb
+  state-path:%MyDocuments%/puNES/save
+  state-name:<name>.p<ordinal:2>
+  pure-state-extension:pst
+
+emulator name=Nestopia
+  path:C:/Nestopia/nestopia.exe
+  ram-path:C:/Nestopia/saves
+  state-path:C:/Nestopia/states
+  state-name:<name>.ns<ordinal:1>
+  pure-state-extension:nst
+
+emulator name=Nintendulator
+  path:C:/Nintendulator/Nintendulator.exe
+  ram-path:%AppData%/Nintendulator/SRAM
+  state-path:%AppData%/Nintendulator/States
+  state-name:<name>.ns<ordinal:1>
+  pure-state-extension:nst
+
+emulator name=FCEUX
+  path:C:/FCEUX/fceux.exe
+  ram-path:C:/FCEUX/sav
+  state-path:C:/FCEUX/fcs
+  state-name:<name>.fc<ordinal:1>
+  pure-state-extension:fcs
+  ascii
+
+emulator name=no$nes
+  path:C:/no$nes-w/NO$NES.EXE
+  ram ext=SAV sub=sav
+    query: board/prg/ram
+    query: board/chr/ram
+  ram-path:C:/no$nes-w/BATTERY
+  state-path:C:/no$nes-w/SNAP
+  state-name:<name><ordinal:1>.SNA
+  windows
+
+emulator name=Snes9x
+  path:C:/Snes9x/snes9x-x64.exe
+  ram-path:C:/Snes9x/saves
+  state-path:C:/Snes9x/Saves
+  state-name:<name>.00<ordinal:1>
+  pure-state-extension:9st
+
+emulator name=ZSNES
+  path:C:/zsnes/zsnesw.exe
+  ascii
+
+emulator name=no$sns
+  path:C:/no$sns/NO$SNS.EXE
+  ram ext=sav sub=srm
+    query: board/ram
+    query: board/sa1/ram
+    query: board/superfx/ram
+    query: board/armdsp/dram
+    query: board/hitachidsp/ram
+    query: board/necdsp(model=uPD96050)/dram
+    query: board/spc7110/ram
+    query: board/sdd1/ram
+    query: board/obc1/ram
+  ram-path:C:/no$sns/BATTERY
+  windows
+
+emulator name=mupen64plus
+  path:C:/mupen64plus/mupen64plus.exe
+  ram-name-format:<goodset>.<ext>
+
+emulator name=Project64
+  path:C:/Project64_20/Project64.exe
+  ram-path:C:/Project64_20/Save
+  ram-name-format:<internal>.<ext>
+
+emulator name=Project64_17
+  path:C:/Project64_17/Project64.exe
+  ram-path:C:/Project64_17/Save
+  ram-name-format:<internal>.<ext>
+
+emulator name=BlastEm
+  path:C:/blastem/blastem.exe
+  ram-path:%LocalAppData%/blastem
+  ram-name-format:<name>/save.sram
+
+emulator name=KegaFusion
+  path:C:/KegaFusion/Fusion.exe
+  ram-path:C:/KegaFusion
+  sg
+    state-path:C:/KegaFusion/ggstates
+    state-name:<name>.ss<ordinal:1>
+    pure-state-extension:sst
+  sms
+    state-path:C:/KegaFusion/ggstates
+    state-name:<name>.ss<ordinal:1>
+    pure-state-extension:sst
+  md
+    state-path:C:/KegaFusion/mdstates
+    state-name:<name>.gs<ordinal:1>
+    pure-state-extension:gst
+  32x
+    state-path:C:/KegaFusion/mdstates
+    state-name:<name>.gs<ordinal:1>
+    pure-state-extension:gst
+  gg
+    state-path:C:/KegaFusion/ggstates
+    state-name:<name>.ss<ordinal:1>
+    pure-state-extension:sst
+
+emulator name=GensKMod
+  path:C:/GensKMod/gens.exe
+  state-path:C:/GensKMod/states
+  state-name:<name>.gs<ordinal:1>
+  pure-state-extension:gst
+
+emulator name=BGB
+  path:C:/bgb/bgb.exe
+  state-name:<name>.sn<ordinal:1>
+
+emulator name=mGBA
+  path:C:/mGBA/mGBA.exe
+  state-name:<name>.ss<ordinal:1>
+
+emulator name=VisualBoyAdvance-M
+  path:C:/VBAdvM/VisualBoyAdvance-M.exe
+  state-path:C:/VBAdvM/saves
+  state-name:<name><ordinal:1>.sgm
+  ascii
+  ram-destructive
+
+emulator name=no$gba
+  path:C:/no$gba/NO$GBA.EXE
+  ram-name-format:<fullstop-bug>.<ext>
+  ram ext=SAV sub=sav
+    query: board/ram
+  -ram-path:C:/no$gba/BATTERY
+  state-path:C:/no$gba/SNAP
+  state-name:<name><ordinal:1>.SNA
+  windows
+  ram-destructive
+
+emulator name=DeSmuME
+  path:C:/DeSmuME/DeSmuME_x64.exe
+  ram ext=dsv sub=sav
+    query: board/ram
+    special=dsv size=122
+  state-path:C:/DeSmuME/States
+  state-name:<name>.ds<ordinal:1>
+  pure-state-extension:dst
+  windows
+
+emulator name=Oswan
+  path:C:/Oswan/Oswan.exe
+  state-path:C:/Oswan/save
+  state-name:<name>.00<ordinal:1>
+  pure-state-extension:ost
+  windows
+
+emulator name=NeoPop
+  path:C:/NeoPop/NeoPop-Win32.EXE
+  ram-path:C/NeoPop/Battery
+  state-path:C:/NeoPop/States
+  state-name:<name>.ngs

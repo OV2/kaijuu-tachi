@@ -1,0 +1,81 @@
+board region=ntsc
+  grom name=description.rom size=0x8000
+  slot
+    rom name=program.rom size=0x80000
+      map address=00-7d,80-ff:8000-ffff mask=0x8000
+  slot
+    rom name=slot-1.rom size=0x200000
+      map address=00-3f,80-bf:8000-ffff mask=0x8000
+    ram name=slot-1.ram size=0x2000
+      map address=70-7d,f0-ff:0000-7fff mask=0x8000
+  slot
+    rom name=slot-2.rom size=0x80000
+      map address=00-3f,80-bf:8000-ffff
+      map address=40-7d,c0-ff:0000-ffff
+    ram name=slot-2.ram size=0x800
+      map address=20-3f,a0-bf:6000-7fff mask=0xe000
+    necdsp model=uPD7725 frequency=8000000
+      map address=00-1f,80-9f:6000-7fff mask=0xfff
+      prom name=dsp1.program.rom size=0x1800
+      drom name=dsp1.data.rom size=0x800
+      dram name=dsp1.data.ram size=0x200 volatile
+  slot
+    superfx revision=1
+      map address=00-3f,80-bf:3000-34ff
+      rom name=slot-3.rom size=0x100000
+        map address=00-1f,80-9f:8000-ffff mask=0x8000
+      ram name=slot-3.ram size=0x8000
+        map address=60-7d,e0-ff:0000-ffff
+
+information
+  revision: 1.0
+  name:     PSS-61
+  title:    PSS-61
+  sha256:   e3f2b8d15a5f22c6cbd924f08703682efe11d2e704f6c64baeaa2f2da86f1ad3
+
+////
+
+board region=ntsc
+  grom name=description.rom size=0x8000
+  slot
+    rom name=slot-1.rom size=0x100000
+      map address=00-7d,80-ff:8000-ffff mask=0x8000
+    ram name=slot-1.ram size=0x2000 volatile
+      map address=70-7d,f0-ff:0000-7fff mask=0x8000
+  slot
+    rom name=slot-2.rom size=0x80000
+      map address=00-3f,80-bf:8000-ffff
+      map address=40-7d,c0-ff:8000-ffff
+    ram name=slot-2.ram size=0x2000 volatile
+      map address=20-3f,a0-bf:6000-7fff mask=0xe000
+
+information
+  revision: 1.0
+  name:     PSS-62
+  title:    PSS-62
+  sha256:   79140f9496729f03b16e18adfd9ded817cee8a4a8e7b5a6e88d37b26164692d7
+
+////
+
+board region=ntsc
+  grom name=description.rom size=0x8000
+  slot
+    rom name=slot-1.rom size=0x400000
+      map address=00-3f,80-bf:8000-ffff
+      map address=40-7d,c0-ff:0000-ffff
+    ram name=slot-1.ram size=0x800 volatile
+      map address=20-3f,a0-bf:6000-7fff mask=0xe000
+  slot
+    rom name=slot-2.rom size=0x100000
+      map address=00-7d,80-ff:8000-ffff mask=0x8000
+    ram name=slot-2.ram size=0x800 volatile
+      map address=70-7d,f0-ff:0000-7fff mask=0x8000
+
+information
+  revision: 1.0
+  name:     PSS-63
+  title:    PSS-63
+  sha256:   85848d3d53051b3bcdb04f1fcf925b4a3e74240cae3dfdca670809cc45bd504e
+
+//Note: PSS-64's GROM has not yet been ripped.
+//PSS-64 consists of Super Donkey Kong and Super Bomberman 2.

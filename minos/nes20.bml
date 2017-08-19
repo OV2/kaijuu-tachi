@@ -1,0 +1,499 @@
+board
+  id=HVC-FAMILYBASIC
+  id=HVC-NROM
+  id=HVC-NROM-128
+  id=HVC-NROM-256
+  id=HVC-RROM
+  id=HVC-RROM-128
+  id=HVC-RTROM
+  id=HVC-SROM
+  id=HVC-STROM
+  id=NES-NROM
+  id=NES-NROM-128
+  id=NES-NROM-256
+  id=NES-RROM
+  id=NES-RROM-128
+  id=NES-RTROM
+  id=NES-SROM
+  id=NES-STROM
+  id=BANDAI-NROM-128
+  id=BANDAI-NROM-256
+  id=IREM-NROM-128
+  id=IREM-NROM-256
+  id=KONAMI-NROM-128
+  id=NAMCOT-3301
+  id=NAMCOT-3302
+  id=NAMCOT-3303
+  id=NAMCOT-3304
+  id=NAMCOT-3305
+  id=NAMCOT-3311
+  id=NAMCOT-3312
+  mirror
+  mapper=0
+
+board
+  id=HVC-HROM
+  id=NES-HROM
+  mirror=vertical
+  mapper=0
+
+board
+  id=HVC-SAROM
+  id=HVC-SBROM
+  id=HVC-SCROM
+  id=HVC-SC1ROM
+  id=HVC-SFROM
+  id=HVC-SF1ROM
+  id=HVC-SFEXPROM
+  id=HVC-SGROM
+  id=HVC-SIROM
+  id=HVC-SJROM
+  id=HVC-SKROM
+  id=HVC-SLROM
+  id=HVC-SL1ROM
+  id=HVC-SL2ROM
+  id=HVC-SL3ROM
+  id=HVC-SLRROM
+  id=HVC-SMROM
+  id=HVC-SNROM
+  id=HVC-SNWEPROM
+  id=HVC-SOROM
+  id=HVC-SUROM
+  id=HVC-SXROM
+  id=NES-SAROM
+  id=NES-SBROM
+  id=NES-SCROM
+  id=NES-SC1ROM
+  id=NES-SFROM
+  id=NES-SF1ROM
+  id=NES-SFEXPROM
+  id=NES-SGROM
+  id=NES-SIROM
+  id=NES-SJROM
+  id=NES-SKROM
+  id=NES-SLROM
+  id=NES-SL1ROM
+  id=NES-SL2ROM
+  id=NES-SL3ROM
+  id=NES-SLRROM
+  id=NES-SMROM
+  id=NES-SNROM
+  id=NES-SNWEPROM
+  id=NES-SOROM
+  id=NES-SUROM
+  id=NES-SXROM
+  id=KONAMI-SLROM
+  chip
+    type=MMC1   mapper=155 submapper=0
+    type=MMC1A  mapper=155 submapper=0
+    type=MMC1B1 mapper=1   submapper=0
+    type=MMC1B2 mapper=1   submapper=0
+    type=MMC1B3 mapper=1   submapper=0
+    type=MMC1C  mapper=1   submapper=0
+  mapper=1
+  submapper=0
+
+board
+  id=HVC-SEROM
+  id=HVC-SHROM
+  id=HVC-SH1ROM
+  id=NES-SEROM
+  id=NES-SHROM
+  id=NES-SH1ROM
+  chip
+    type=MMC1   mapper=155 submapper=5
+    type=MMC1A  mapper=155 submapper=5
+    type=MMC1B1 mapper=1   submapper=5
+    type=MMC1B2 mapper=1   submapper=5
+    type=MMC1B3 mapper=1   submapper=5
+    type=MMC1C  mapper=1   submapper=5
+  mapper=1
+  submapper=5
+
+board
+  id=HVC-UNROM
+  id=HVC-UOROM
+  id=NES-UNROM
+  id=NES-UOROM
+  id=IREM-UNROM
+  id=KONAMI-UNROM
+  chip
+    type=74HC32 mapper=2
+    type=74HC08 mapper=180
+  mirror
+  mapper=2
+  submapper=2
+
+board
+  id=HVC-CNROM
+  id=NES-CNROM
+  id=KONAMI-CNROM
+  id=BANDAI-74*161/32
+  id=BANDAI-CNROM
+  id=BANDAI-PT-554
+  mirror
+  mapper=3
+  submapper=2
+
+board
+  id=HVC-TBROM
+  id=HVC-TEROM
+  id=HVC-TFROM
+  id=HVC-TGROM
+  id=HVC-TKROM
+  id=HVC-TKEPROM
+  id=HVC-TLROM
+  id=HVC-TL1ROM
+  id=HVC-TL2ROM
+  id=HVC-TNROM
+  id=HVC-TSROM
+  id=NES-TBROM
+  id=NES-TEROM
+  id=NES-TFROM
+  id=NES-TGROM
+  id=NES-TKROM
+  id=NES-TKEPROM
+  id=NES-TLROM
+  id=NES-TL1ROM
+  id=NES-TL2ROM
+  id=NES-TNROM
+  id=NES-TSROM
+  id=ACCLAIM-MC-ACC
+  id=KONAMI-TLROM
+  chip
+    type=MMC3   mapper=4 submapper=0
+    type=MMC3A  mapper=4 submapper=0
+    type=MMC3B  mapper=4 submapper=0
+    type=MMC3C  mapper=4 submapper=2
+    type=MC-ACC mapper=4 submapper=1
+  mapper=4
+  submapper=0
+
+board
+  id=HVC-TR1OM
+  id=HVC-TVOM
+  id=NES-TR1OM
+  id=NES-TVOM
+  chip
+    type=MMC3   mapper=4 submapper=0
+    type=MMC3A  mapper=4 submapper=0
+    type=MMC3B  mapper=4 submapper=0
+    type=MMC3C  mapper=4 submapper=0
+    type=MC-ACC mapper=4 submapper=3
+  four-screen
+  mapper=4
+
+board
+  id=NES-HKROM
+  chip
+  mapper=4
+  submapper=1
+
+board
+  id=HVC-EKROM
+  id=HVC-ELROM
+  id=HVC-ETROM
+  id=HVC-EWROM
+  id=NES-EKROM
+  id=NES-ELROM
+  id=NES-ETROM
+  id=NES-EWROM
+  chip
+    type=MMC5  mapper=5 submapper=0
+    type=MMC5B mapper=5 submapper=0
+  mapper=5
+
+board
+  id=HVC-AMROM
+  id=NES-AMROM
+  mapper=7
+  submapper=2
+board
+  id=HVC-ANROM
+  id=HVC-AN1ROM
+  id=NES-ANROM
+  id=NES-AN1ROM
+  mapper=7
+  submapper=1
+board
+  id=HVC-AOROM
+  id=NES-AOROM
+  mapper=7
+  submapper=0
+
+board
+  id=HVC-PEEOROM
+  id=HVC-PNROM
+  id=NES-PEEOROM
+  id=NES-PNROM
+  chip
+  mapper=9
+
+board
+  id=HVC-FJROM
+  id=HVC-FKROM
+  id=NES-FJROM
+  id=NES-FKROM
+  chip
+  mapper=10
+
+board
+  id=NES-CPROM
+  mirror
+  mapper=13
+
+board
+  id=BANDAI-FCG
+  id=BANDAI-FCG-1
+  id=BANDAI-FCG-2
+  id=BANDAI-LZ93D50
+  id=IREM-FCG-1
+  chip
+  chip
+    type=24C02 mapper=16
+    type=24C01 mapper=159
+  mapper=16
+
+board
+  id=JALECO-JF-23
+  id=JALECO-JF-24
+  id=JALECO-JF-25
+  id=JALECO-JF-27
+  id=JALECO-JF-29
+  id=JALECO-JF-37
+  id=JALECO-JF-40
+  mapper=18
+
+board
+  id=NAMCOT-129
+  id=NAMCOT-163
+  mapper=19
+
+board
+  id=KONAMI-VRC-2
+board
+  id=KONAMI-VRC-4
+board
+  id=KONAMI-VRC-6
+
+board
+  id=IREM-G101
+  chip
+  mapper=32
+  submapper=0
+
+board
+  id=IREM-G101
+  chip
+  mirror
+  mapper=32
+  submapper=1
+
+board
+  id=IREM-BNROM
+  id=NES-BNROM
+  mirror
+  mapper=34
+  submapper=2
+
+board
+  id=PAL-ZZ
+  chip
+  mapper=37
+
+board
+  id=NES-QJ
+  chip
+  mapper=47
+
+board
+  id=TAITO-TC0690FMR
+  chip
+  mapper=48
+
+board
+  id=IREM-H3001
+  chip
+  mapper=65
+
+board
+  id=HVC-GNROM
+  id=HVC-MHROM
+  id=NES-GNROM
+  id=NES-MHROM
+  id=BANDAI-GNROM
+  mirror
+  mapper=66
+
+board
+  id=SUNSOFT-4
+  chip
+  mapper=68
+
+board
+  id=SUNSOFT-5B
+  id=NES-BTR
+  id=NES-JLROM
+  id=NES-JSROM
+  chip
+  mapper=69
+
+board
+  id=BANDAI-74*161/161/32
+  mapper=70
+
+board
+  id=KONAMI-VRC-3
+  chip
+  mapper=73
+
+board
+  id=KONAMI-VRC-1
+  id=JALECO-JF-22
+  chip
+  mapper=75
+
+board
+  id=NAMCOT-3446
+  chip
+  mirror
+  mapper=76
+
+board
+  id=IREM-74*161/161/21/138
+  mapper=77
+
+board
+  id=JALECO-JF-16
+  mapper=78
+  submapper=1
+
+board
+  id=IREM-HOLYDIVER
+  mapper=78
+  submapper=3
+
+board
+  id=KONAMI-VRC-7
+  chip
+  mapper=85
+
+board
+  id=JALECO-JF-05
+  id=JALECO-JF-06
+  id=JALECO-JF-07
+  id=JALECO-JF-08
+  id=JALECO-JF-09
+  id=JALECO-JF-10
+  id=KONAMI-74*139/74
+  mapper=87
+
+board
+  id=NAMCOT-3443
+  chip
+  mirror
+  mapper=88
+
+board
+  id=HVC-UN1ROM
+  mirror
+  mapper=94
+  submapper=2
+
+board
+  id=NAMCOT-3425
+  chip
+  mirror
+  mapper=95
+
+board
+  id=BANDAI-74*161/02/74
+  mapper=96
+
+board
+  id=IREM-TAM-S1
+  chip
+  mapper=97
+
+board
+  id=NES-EVENT
+  chip
+  mapper=105
+
+board
+  id=HVC-TKSROM
+  id=HVC-TLSROM
+  id=NES-TKSROM
+  id=NES-TLSROM
+  chip
+    type=MMC3   mapper=118 submapper=0
+    type=MMC3A  mapper=118 submapper=0
+    type=MMC3B  mapper=118 submapper=0
+    type=MMC3C  mapper=118 submapper=2
+    type=MC-ACC mapper=118 submapper=1
+  mapper=118
+
+board
+  id=HVC-TQROM
+  id=NES-TQROM
+  chip
+    type=MMC3   mapper=119 submapper=0
+    type=MMC3A  mapper=119 submapper=0
+    type=MMC3B  mapper=119 submapper=0
+    type=MMC3C  mapper=119 submapper=2
+    type=MC-ACC mapper=119 submapper=1
+  mapper=119
+
+board
+  id=JALECO-JF-11
+  id=JALECO-JF-14
+  mapper=140
+
+board
+  id=BANDAI-JUMP2
+  chip
+  mapper=153
+
+board
+  id=NAMCOT-3453
+  chip
+  mirror
+  mapper=154
+
+board
+  id=SUNSOFT-1
+  mirror
+  mapper=184
+
+board
+  id=NAMCOT-3401
+  id=NAMCOT-3406
+  id=NAMCOT-3407
+  id=NAMCOT-3413
+  id=NAMCOT-3414
+  id=NAMCOT-3415
+  id=NAMCOT-3416
+  id=NAMCOT-3417
+  id=NAMCOT-3451
+  id=NES-DEROM
+  id=NES-DE1ROM
+  chip
+  mirror
+  mapper=206
+
+board
+  id=NES-DRROM
+  chip
+  four-screen
+  mapper=206
+
+board
+  id=NAMCOT-175
+  id=NAMCOT-340
+  chip
+  mapper=210
+
+board
+  id=TAITO-TC0190FMC
+board
+  id=TAITO-TC0350FMR

@@ -1,0 +1,6 @@
+ramus
+author: hex_usr
+license: ISC
+
+ramus is a header library that provides miscellaneous functions that have
+no place in nall due to obsolescence or lack of relevance.
