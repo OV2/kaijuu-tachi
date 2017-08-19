@@ -17,8 +17,7 @@ public:
   STDMETHODIMP Initialize(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
 
 private:
-  void getFileNamesFromPdata(LPDATAOBJECT);
-  void cartridgeFolderOpen();
+  vector<unsigned> matchedRules();
 };
 
 typedef CShellExt *LPCSHELLEXT;

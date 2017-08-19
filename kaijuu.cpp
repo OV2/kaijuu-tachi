@@ -24,6 +24,7 @@ STDAPI DllRegisterServer() {
   registry::write({"HKCR/CLSID/", classID, "/shellex/MayChangeDefaultMenu/"});
   registry::write({"HKCR/CLSID/", classID, "/InprocServer32/"}, (const char*)utf8_t(fileName));
   registry::write({"HKCR/CLSID/", classID, "/InprocServer32/ThreadingModel"}, "Apartment");
+  registry::write({"HKCR/*/shellex/ContextMenuHandlers/", classDescription, "/"}, classID);
   registry::write({"HKCR/Directory/shellex/ContextMenuHandlers/", classDescription, "/"}, classID);
   registry::write({"HKLM/Software/Microsoft/Windows/CurrentVersion/Shell Extensions/Approved/", classID}, classDescription);
   SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
@@ -32,6 +33,7 @@ STDAPI DllRegisterServer() {
 
 STDAPI DllUnregisterServer() {
   registry::remove({"HKCR/CLSID/", classID, "/"});
+  registry::remove({"HKCR/*/shellex/ContextMenuHandlers/", classDescription, "/"});
   registry::remove({"HKCR/Directory/shellex/ContextMenuHandlers/", classDescription, "/"});
   registry::remove({"HKLM/Software/Microsoft/Windows/CurrentVersion/Shell Extensions/Approved/", classID});
   SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);

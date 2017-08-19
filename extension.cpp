@@ -8,7 +8,7 @@ CShellExt::~CShellExt() {
 }
 
 STDMETHODIMP CShellExt::QueryInterface(REFIID riid, LPVOID *ppv) {
-  *ppv = NULL;
+  *ppv = nullptr;
 
   if(IsEqualIID(riid, IID_IShellExtInit) || IsEqualIID(riid, IID_IUnknown)) {
     *ppv = (IShellExtInit*)this;
@@ -36,130 +36,137 @@ STDMETHODIMP_(ULONG) CShellExt::Release() {
 
 STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataObject, HKEY hRegKey) {
   fileList.reset();
-  if(pDataObject) getFileNamesFromPdata(pDataObject);
+
+  if(pDataObject) {
+    wchar_t filename[PATH_MAX];
+    STGMEDIUM medium;
+    FORMATETC fe = {CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
+    HDROP hDrop;
+
+    if(FAILED(pDataObject->GetData(&fe, &medium))) return E_INVALIDARG;
+    hDrop = (HDROP)GlobalLock(medium.hGlobal);
+    if(hDrop == NULL) return E_INVALIDARG;
+
+    fileList.reset();
+    unsigned count = DragQueryFileW(hDrop, 0xffffffff, NULL, 0);
+    for(unsigned i = 0; i < count; i++) {
+      DragQueryFileW((HDROP)medium.hGlobal, i, filename, PATH_MAX);
+      string name = (const char*)utf8_t(filename);
+      name.transform("/", "\\");
+      if(name.endswith("\\")) name.rtrim<1>("\\");
+      fileList.append(name);
+    }
+    GlobalUnlock(medium.hGlobal);
+    ReleaseStgMedium(&medium);
+  }
+
   return S_OK;
 }
 
 STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) {
-  if(fileList.size() == 1) {
-    string filename = fileList(0);
-    lstring rules = registry::contents("HKCU/Software/Kaijuu/");
-    for(auto &rule : rules) {
-      string path = {"HKCU/Software/Kaijuu/", rule};
-      string filter = string{rule}.rtrim<1>("/");
-      bool makeDefault = registry::read({path, "Default"}) == "true";
-      string association = registry::read({path, "Association"});
-      string description = registry::read({path, "Description"});
+  settings.load();
+  unsigned idCmd = idCmdFirst;
+  bool firstDefault = true;
 
-      if(filename.wildcard(filter) && association.empty() == false) {
-        MENUITEMINFOW mii = {0};
-        mii.fMask = MIIM_STRING | MIIM_ID;
-        mii.cbSize = sizeof(mii);
-        mii.wID = idCmdFirst + IDM_CFOPEN;
-        utf16_t s(description);
-        mii.dwTypeData = s;
-        InsertMenuItemW(hMenu, indexMenu, TRUE, &mii);
-        if(makeDefault) SetMenuDefaultItem(hMenu, indexMenu, TRUE);
-        return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(1));
+  auto ruleIDs = matchedRules();
+  for(auto &ruleID : ruleIDs) {
+    auto &rule = settings.rules(ruleID);
+    if(idCmd < idCmdLast) {
+      InsertMenuW(hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmd++, (const wchar_t*)utf16_t(rule.name));
+      if(rule.defaultAction && firstDefault) {
+        firstDefault = false;  //there can be only one default menu item
+        SetMenuDefaultItem(hMenu, indexMenu, TRUE);
       }
+      indexMenu++;
     }
   }
 
-  return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(0));
+  return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(idCmd - idCmdFirst));
 }
 
-STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCommand, UINT uFlags, LPUINT lpReserved, LPSTR pszName, UINT uMaxNameLen) {
-  HRESULT hr = E_INVALIDARG;
-
-  if(idCommand == IDM_CFOPEN) {
-    switch(uFlags) {
-    case GCS_HELPTEXTA:
-      hr = StringCbCopyA(pszName, uMaxNameLen, "Opens folder with kaijuu");
-      break;
-    case GCS_HELPTEXTW:
-      hr = StringCbCopyW((LPWSTR)pszName, uMaxNameLen, L"Opens folder with kaijuu");
-      break;
-    case GCS_VERBA:
-      hr = StringCbCopyA(pszName, uMaxNameLen, "CFOPEN");
-      break;
-    case GCS_VERBW:
-      hr = StringCbCopyW((LPWSTR)pszName, uMaxNameLen, L"CFOPEN");
-      break;
-    default:
-      hr = S_OK;
-      break;
-    }
-  }
-
-  return hr;
+STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, LPUINT lpReserved, LPSTR pszName, UINT uMaxNameLen) {
+  if(idCmd < settings.rules.size()) return S_OK;
+  return E_INVALIDARG;
 }
 
 STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
-  BOOL fEx = FALSE;
-  BOOL fUnicode = FALSE;
+  if(HIWORD(lpcmi->lpVerb) != 0) return E_INVALIDARG;  //ignore actual string verbs
 
-  if(lpcmi->cbSize == sizeof(CMINVOKECOMMANDINFOEX)) {
-    fEx = TRUE;
-    if((lpcmi->fMask & CMIC_MASK_UNICODE)) fUnicode = TRUE;
+  settings.load();
+  unsigned id = LOWORD(lpcmi->lpVerb);
+  auto ruleIDs = matchedRules();
+  auto &rule = settings.rules(ruleIDs(id));
+
+  string filename = fileList(0);
+  string pathname = filename;
+  if(directory::exists(pathname) == false) pathname = dir(pathname);
+  if(pathname.endswith("\\")) pathname.rtrim<1>("\\");
+
+  string filenames, pathnames;
+  for(auto &filename : fileList) {
+    string pathname = filename;
+    if(directory::exists(pathname) == false) pathname = dir(pathname);
+    if(pathname.endswith("\\")) pathname.rtrim<1>("\\");
+    filenames.append("\"", filename, "\" ");
+    pathnames.append("\"", pathname, "\" ");
   }
+  filenames.rtrim<1>(" ");
+  pathnames.rtrim<1>(" ");
 
-  if(!fUnicode && HIWORD(lpcmi->lpVerb)) {
-    if(!lstrcmpiA(lpcmi->lpVerb, "CFOPEN")) cartridgeFolderOpen();
-    else return E_FAIL;
-  }
+  lstring params = rule.command.qsplit<1>(" ");
+  params(1).replace("{ufile}", filename);
+  params(1).replace("{upath}", pathname);
+  params(1).replace("{file}", string{"\"", filename, "\""});
+  params(1).replace("{path}", string{"\"", pathname, "\""});
+  params(1).replace("{files}", filenames);
+  params(1).replace("{paths}", pathnames);
 
-  else if(fUnicode && HIWORD(((CMINVOKECOMMANDINFOEX*)lpcmi)->lpVerbW)) {
-    if(!lstrcmpiW(((CMINVOKECOMMANDINFOEX*)lpcmi)->lpVerbW, L"CFOPEN")) cartridgeFolderOpen();
-    else return E_FAIL;
-  }
-
-  else if(LOWORD(lpcmi->lpVerb) == IDM_CFOPEN) {
-    cartridgeFolderOpen();
-  }
-
-  else {
-    return E_FAIL;
+  if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), utf16_t(dir(filename)), SW_SHOWNORMAL) <= 32) {
+    MessageBoxW(0, L"Error opening associated program.", L"kaijuu", MB_OK);
   }
 
   return S_OK;
 }
 
-void CShellExt::getFileNamesFromPdata(LPDATAOBJECT pDataObject) {
-  wchar_t filename[MAX_PATH];
-  STGMEDIUM medium;
-  FORMATETC fe = {CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL};
-  HDROP hDrop;
+vector<unsigned> CShellExt::matchedRules() {
+  vector<unsigned> matched;
+  if(fileList.size() == 0) return matched;
 
-  if(FAILED(pDataObject->GetData(&fe, &medium))) return;
-  hDrop = (HDROP)GlobalLock(medium.hGlobal);
-  if(hDrop == NULL) return;
-
-  fileList.reset();
-  unsigned count = DragQueryFileW(hDrop, 0xffffffff, NULL, 0);
-  for(unsigned i = 0; i < count; i++) {
-    DragQueryFileW((HDROP)medium.hGlobal, i, filename, MAX_PATH);
-    fileList.append((const char*)utf8_t(filename));
-  }
-  GlobalUnlock(medium.hGlobal);
-  ReleaseStgMedium(&medium);
-}
-
-void CShellExt::cartridgeFolderOpen() {
-  string filename = fileList(0);
-  lstring rules = registry::contents("HKCU/Software/Kaijuu/");
-  for(auto &rule : rules) {
-    string path = {"HKCU/Software/Kaijuu/", rule};
-    string filter = string{rule}.rtrim<1>("/");
-
-    if(filename.wildcard(filter)) {
-      string program = registry::read({path, "Association"});
-      lstring params = program.qsplit<1>(" ");
-      params(1).replace("{path}", fileList(0));
-
-      if((intptr_t)ShellExecuteW(NULL, L"open", utf16_t(params(0)), utf16_t(params(1)), NULL, SW_SHOWNORMAL) <= 32) {
-        MessageBoxW(0, L"Error opening associated program.", L"kaijuu", MB_OK);
+  for(unsigned id = 0; id < settings.rules.size(); id++) {
+    auto &rule = settings.rules(id);
+    if(rule.multiSelection == false && fileList.size() > 1) continue;
+    bool proceed = true;
+    for(auto &filename : fileList) {
+      string name = filename;
+      if(directory::exists(name)) {
+        if(rule.matchFolders == false) {
+          proceed = false;
+          break;
+        }
+      } else {
+        if(rule.matchFiles == false) {
+          proceed = false;
+          break;
+        }
       }
-      return;
+      name = notdir(name);
+
+      lstring patternList = rule.pattern.split(";");
+      bool found = false;
+      for(auto &pattern : patternList) {
+        if(name.wildcard(pattern)) {
+          found = true;
+          break;
+        }
+      }
+      if(found == false) {
+        proceed = false;
+        break;
+      }
     }
+    if(proceed == false) continue;
+    matched.append(id);
   }
+
+  return matched;
 }

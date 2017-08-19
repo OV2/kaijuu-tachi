@@ -1,6 +1,8 @@
 #include <nall/platform.hpp>
+#include <nall/directory.hpp>
 #include <nall/file.hpp>
 #include <nall/string.hpp>
+#include <nall/vector.hpp>
 #include <nall/windows/registry.hpp>
 using namespace nall;
 
@@ -18,5 +20,6 @@ HINSTANCE module = NULL;
 unsigned referenceCount = 0;
 
 #include "guid.hpp"
+#include "settings.hpp"
 #include "extension.hpp"
 #include "factory.hpp"

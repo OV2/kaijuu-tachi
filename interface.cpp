@@ -1,20 +1,24 @@
 #include "interface.hpp"
 Application *application = nullptr;
-KaijuuAssociation *kaijuuAssociation = nullptr;
+RuleEditor *ruleEditor = nullptr;
 
 Application::Application(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v02");
-  setFrameGeometry({64, 64, 640, 480});
+  setTitle("kaijuu v03");
+  setFrameGeometry({64, 64, 720, 480});
 
   layout.setMargin(5);
   statusLabel.setFont("Tahoma, 8, Bold");
   uninstallButton.setText("Uninstall");
   installButton.setText("Install");
-  settingList.setHeaderText("Filter", "Default", "Association", "Description");
+  settingList.setHeaderText("Name", "Default", "Match", "Pattern", "Command");
   settingList.setHeaderVisible();
   appendButton.setText("Append");
   modifyButton.setText("Modify");
+  moveUpButton.setText("Move Up");
+  moveDownButton.setText("Move Down");
   removeButton.setText("Remove");
+  resetButton.setText("Reset");
+  helpButton.setText("Help ...");
 
   append(layout);
   layout.append(installLayout, {~0, 0}, 5);
@@ -26,8 +30,12 @@ Application::Application(const string &pathname) : pathname(pathname) {
     settingLayout.append(controlLayout, {0, ~0});
       controlLayout.append(appendButton, {80, 0}, 5);
       controlLayout.append(modifyButton, {80, 0}, 5);
+      controlLayout.append(moveUpButton, {80, 0}, 5);
+      controlLayout.append(moveDownButton, {80, 0}, 5);
       controlLayout.append(removeButton, {80, 0}, 5);
       controlLayout.append(spacer, {0, ~0});
+      controlLayout.append(resetButton, {80, 0}, 5);
+      controlLayout.append(helpButton, {80, 0}, 5);
       controlLayout.append(canvas, {80, 88});
 
   image icon;
@@ -42,7 +50,11 @@ Application::Application(const string &pathname) : pathname(pathname) {
   settingList.onChange = {&Application::synchronize, this};
   appendButton.onActivate = {&Application::appendAction, this};
   modifyButton.onActivate = {&Application::modifyAction, this};
+  moveUpButton.onActivate = {&Application::moveUpAction, this};
+  moveDownButton.onActivate = {&Application::moveDownAction, this};
   removeButton.onActivate = {&Application::removeAction, this};
+  resetButton.onActivate = {&Application::resetAction, this};
+  helpButton.onActivate = [&] { nall::invoke("kaijuu.html"); };
   refresh();
   synchronize();
   setVisible();
@@ -59,20 +71,21 @@ void Application::synchronize() {
     uninstallButton.setEnabled(false);
   }
   modifyButton.setEnabled(settingList.selected());
+  moveUpButton.setEnabled(settingList.selected() && settings.rules.size() > 1 && settingList.selection() != 0);
+  moveDownButton.setEnabled(settingList.selected() && settings.rules.size() > 1 && settingList.selection() < settings.rules.size() - 1);
   removeButton.setEnabled(settingList.selected());
+  resetButton.setEnabled(settings.rules.size() > 0);
 }
 
 void Application::refresh() {
+  settings.load();
   settingList.reset();
-  lstring rules = registry::contents("HKCU/Software/Kaijuu/");
-  for(auto &rule : rules) {
-    string name = string{rule}.rtrim<1>("/");
-    string path = {"HKCU/Software/Kaijuu/", rule};
-    settingList.append(name,
-      registry::read({path, "Default"}),
-      registry::read({path, "Association"}),
-      registry::read({path, "Description"})
-    );
+  for(auto &rule : settings.rules) {
+    string match = "Nothing";
+    if(rule.matchFiles && rule.matchFolders) match = "Everything";
+    else if(rule.matchFiles) match = "Files";
+    else if(rule.matchFolders) match = "Folders";
+    settingList.append(rule.name, rule.defaultAction ? "Yes" : "No", match, rule.pattern, rule.command);
   }
   settingList.autoSizeColumns();
 }
@@ -90,119 +103,171 @@ void Application::uninstall() {
 }
 
 void Application::appendAction() {
-  kaijuuAssociation->descriptionValue.setText("Open with kaijuu");
-  kaijuuAssociation->filterValue.setEnabled(true);
-  kaijuuAssociation->filterValue.setText("");
-  kaijuuAssociation->associationValue.setText("");
-  kaijuuAssociation->synchronize();
-  kaijuuAssociation->setVisible();
-  kaijuuAssociation->setFocused();
-  kaijuuAssociation->filterValue.setFocused();
+  ruleEditor->show();
 }
 
 void Application::modifyAction() {
+  if(settingList.selected() == false) return;
   unsigned selection = settingList.selection();
-  lstring rules = registry::contents("HKCU/Software/Kaijuu/");
-  string name = rules(selection);
-  if(name.empty()) return;
+  ruleEditor->show(selection);
+}
 
-  string path = {"HKCU/Software/Kaijuu/", name};
-  kaijuuAssociation->descriptionValue.setText(registry::read({path, "Description"}));
-  kaijuuAssociation->filterValue.setEnabled(false);
-  kaijuuAssociation->filterValue.setText(string{name}.rtrim<1>("/"));
-  kaijuuAssociation->associationValue.setText(registry::read({path, "Association"}));
-  kaijuuAssociation->defaultAction.setChecked(registry::read({path, "Default"}) == "true");
-  kaijuuAssociation->synchronize();
-  kaijuuAssociation->setVisible();
-  kaijuuAssociation->setFocused();
-  kaijuuAssociation->associationSelect.setFocused();
+void Application::moveUpAction() {
+  if(settingList.selected() == false) return;
+  if(settingList.selection() == 0) return;
+  unsigned selection = settingList.selection();
+  auto temp = settings.rules(selection - 1);
+  settings.rules(selection - 1) = settings.rules(selection);
+  settings.rules(selection) = temp;
+  settings.save();
+  refresh();
+  settingList.setSelection(selection - 1);
+  synchronize();
+}
+
+void Application::moveDownAction() {
+  if(settingList.selected() == false) return;
+  if(settingList.selection() >= settings.rules.size() - 1) return;
+  unsigned selection = settingList.selection();
+  auto temp = settings.rules(selection + 1);
+  settings.rules(selection + 1) = settings.rules(selection);
+  settings.rules(selection) = temp;
+  settings.save();
+  refresh();
+  settingList.setSelection(selection + 1);
+  synchronize();
 }
 
 void Application::removeAction() {
+  if(settingList.selected() == false) return;
   unsigned selection = settingList.selection();
-  lstring leaves = registry::contents("HKCU/Software/Kaijuu/");
-  string name = leaves(selection);
-  if(name.empty()) return;
-  registry::remove({"HKCU/Software/Kaijuu/", name});
+  settings.rules.remove(selection);
+  settings.save();
   refresh();
   synchronize();
 }
 
-KaijuuAssociation::KaijuuAssociation() {
-  setTitle("Kaijuu Association");
-  setFrameGeometry({128, 128, 500, 160});
+void Application::resetAction() {
+  if(MessageWindow::question(*this, "Warning: this will permanently remove all rules! Are you sure you want to do this?")
+  == MessageWindow::Response::No) return;
+  settings.rules.reset();
+  settings.save();
+  refresh();
+  synchronize();
+}
+
+RuleEditor::RuleEditor() : index(-1) {
+  setTitle("Rule Editor");
+  setFrameGeometry({128, 256, 500, 160});
 
   layout.setMargin(5);
-  descriptionLabel.setText("Description:");
-  filterLabel.setText("Filter:");
-  associationLabel.setText("Association:");
-  associationSelect.setText("Select ...");
-  defaultAction.setText("Default folder action");
-  helpButton.setText("Help ...");
+  nameLabel.setText("Name:");
+  patternLabel.setText("Pattern:");
+  commandLabel.setText("Command:");
+  commandSelect.setText("Select ...");
+  defaultAction.setText("Default Action");
+  filesAction.setText("Match Files");
+  foldersAction.setText("Match Folders");
   assignButton.setText("Assign");
 
   Font font("Tahoma, 8");
   unsigned length = 0;
-  length = max(length, font.geometry("Description:").width);
-  length = max(length, font.geometry("Filter:").width);
-  length = max(length, font.geometry("Association:").width);
+  length = max(length, font.geometry("Name:").width);
+  length = max(length, font.geometry("Pattern:").width);
+  length = max(length, font.geometry("Command:").width);
 
   append(layout);
-  layout.append(descriptionLayout, {~0, 0}, 5);
-    descriptionLayout.append(descriptionLabel, {length, 0}, 5);
-    descriptionLayout.append(descriptionValue, {~0, 0});
-  layout.append(filterLayout, {~0, 0}, 5);
-    filterLayout.append(filterLabel, {length, 0}, 5);
-    filterLayout.append(filterValue, {~0, 0});
-  layout.append(associationLayout, {~0, 0}, 5);
-    associationLayout.append(associationLabel, {length, 0}, 5);
-    associationLayout.append(associationValue, {~0, 0}, 5);
-    associationLayout.append(associationSelect, {80, 0});
+  layout.append(nameLayout, {~0, 0}, 5);
+    nameLayout.append(nameLabel, {length, 0}, 5);
+    nameLayout.append(nameValue, {~0, 0});
+  layout.append(patternLayout, {~0, 0}, 5);
+    patternLayout.append(patternLabel, {length, 0}, 5);
+    patternLayout.append(patternValue, {~0, 0});
+  layout.append(commandLayout, {~0, 0}, 5);
+    commandLayout.append(commandLabel, {length, 0}, 5);
+    commandLayout.append(commandValue, {~0, 0}, 5);
+    commandLayout.append(commandSelect, {80, 0});
   layout.append(controlLayout, {~0, 0});
     controlLayout.append(defaultAction, {0, 0}, 5);
+    controlLayout.append(filesAction, {0, 0}, 5);
+    controlLayout.append(foldersAction, {0, 0}, 5);
     controlLayout.append(spacer, {~0, 0});
-    controlLayout.append(helpButton, {80, 0}, 5);
     controlLayout.append(assignButton, {80, 0});
 
   Geometry geometry = Window::geometry();
   geometry.height = layout.minimumGeometry().height;
   setGeometry(geometry);
 
-  filterValue.onChange = {&KaijuuAssociation::synchronize, this};
+  onClose = [&] {
+    modal = false;
+  };
 
-  associationSelect.onActivate = [&] {
-    string pathname = DialogWindow::fileOpen(*this, application->pathname, "Executable Programs (*.exe)", "All Files (*)");
-    if(pathname.empty() == false) associationValue.setText({"\"", pathname, "\" \"{path}\""});
+  nameValue.onChange =
+  patternValue.onChange =
+  commandValue.onChange =
+  {&RuleEditor::synchronize, this};
+
+  commandSelect.onActivate = [&] {
+    string pathname = DialogWindow::fileOpen(*this, application->pathname, "Programs (*.exe)", "All Files (*)");
+    if(pathname.empty() == false) {
+      pathname.transform("/", "\\");
+      commandValue.setText({"\"", pathname, "\" {file}"});
+    }
     synchronize();
   };
 
-  helpButton.onActivate = [&] {
-    MessageWindow::information(*this,
-      "The filter value is matched against selected folders.\n"
-      "Upon successful match, the rule will appear in the context menu.\n"
-      "Example: *.game will match any folder that ends in .game\n\n"
-      "If default folder action is checked, double-clicking will execute the association.\n"
-      "In this case, opening the folder must be done through the context menu instead."
-    );
-  };
-
   assignButton.onActivate = [&] {
-    string path = {"HKCU/Software/Kaijuu/", filterValue.text(), "/"};
-    registry::write({path, "Description"}, descriptionValue.text());
-    registry::write({path, "Association"}, associationValue.text());
-    registry::write({path, "Default"}, defaultAction.checked());
+    Settings::Rule rule = {
+      nameValue.text(),
+      patternValue.text(),
+      defaultAction.checked(),
+      filesAction.checked(),
+      foldersAction.checked(),
+      commandValue.text()
+    };
+    if(index == -1) {
+      settings.rules.append(rule);
+    } else {
+      settings.rules(index) = rule;
+    }
+    settings.save();
     application->refresh();
     application->synchronize();
     setVisible(false);
+    modal = false;
   };
 }
 
-void KaijuuAssociation::synchronize() {
+void RuleEditor::synchronize() {
   bool enable = true;
-  if(descriptionValue.text().empty()) enable = false;
-  if(filterValue.text().empty()) enable = false;
-  if(associationValue.text().empty()) enable = false;
+  if(nameValue.text().empty()) enable = false;
+  if(patternValue.text().empty()) enable = false;
+  if(commandValue.text().empty()) enable = false;
   assignButton.setEnabled(enable);
+}
+
+void RuleEditor::show(signed ruleID) {
+  Settings::Rule rule{"", "", false, true, false, "", false};
+  if(ruleID >= 0) rule = settings.rules(ruleID);
+
+  index = ruleID;
+  nameValue.setText(rule.name);
+  patternValue.setText(rule.pattern);
+  commandValue.setText(rule.command);
+  defaultAction.setChecked(rule.defaultAction);
+  filesAction.setChecked(rule.matchFiles);
+  foldersAction.setChecked(rule.matchFolders);
+  synchronize();
+  setVisible();
+  setFocused();
+  nameValue.setFocused();
+
+  setModal(modal = true);
+  while(modal == true) {
+    OS::processEvents();
+  }
+  setModal(false);
+  application->setFocused();
 }
 
 typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
@@ -230,7 +295,8 @@ int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
   pathname = dir(pathname);
 
   application = new Application(pathname);
-  kaijuuAssociation = new KaijuuAssociation;
+  ruleEditor = new RuleEditor;
+  application->setFocused();
   OS::main();
 
   return 0;

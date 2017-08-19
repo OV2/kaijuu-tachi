@@ -1,4 +1,5 @@
 #include <nall/platform.hpp>
+#include <nall/invoke.hpp>
 #include <nall/string.hpp>
 #include <nall/windows/registry.hpp>
 using namespace nall;
@@ -7,6 +8,7 @@ using namespace nall;
 using namespace phoenix;
 
 #include "guid.hpp"
+#include "settings.hpp"
 
 struct Application : Window {
   VerticalLayout layout;
@@ -19,8 +21,12 @@ struct Application : Window {
       VerticalLayout controlLayout;
         Button appendButton;
         Button modifyButton;
+        Button moveUpButton;
+        Button moveDownButton;
         Button removeButton;
+        Button resetButton;
         Widget spacer;
+        Button helpButton;
         Canvas canvas;
 
   Application(const string &pathname);
@@ -30,29 +36,37 @@ struct Application : Window {
   void uninstall();
   void appendAction();
   void modifyAction();
+  void moveUpAction();
+  void moveDownAction();
   void removeAction();
+  void resetAction();
 
   string pathname;
 };
 
-struct KaijuuAssociation : Window {
+struct RuleEditor : Window {
   VerticalLayout layout;
-    HorizontalLayout descriptionLayout;
-      Label descriptionLabel;
-      LineEdit descriptionValue;
-    HorizontalLayout filterLayout;
-      Label filterLabel;
-      LineEdit filterValue;
-    HorizontalLayout associationLayout;
-      Label associationLabel;
-      LineEdit associationValue;
-      Button associationSelect;
+    HorizontalLayout nameLayout;
+      Label nameLabel;
+      LineEdit nameValue;
+    HorizontalLayout patternLayout;
+      Label patternLabel;
+      LineEdit patternValue;
+    HorizontalLayout commandLayout;
+      Label commandLabel;
+      LineEdit commandValue;
+      Button commandSelect;
     HorizontalLayout controlLayout;
       CheckBox defaultAction;
+      CheckBox filesAction;
+      CheckBox foldersAction;
       Widget spacer;
-      Button helpButton;
       Button assignButton;
 
-  KaijuuAssociation();
+  bool modal;
+  signed index;
+
+  RuleEditor();
   void synchronize();
+  void show(signed rule = -1);
 };
