@@ -10,7 +10,7 @@ using namespace phoenix;
 #include "guid.hpp"
 #include "settings.hpp"
 
-struct Application : Window {
+struct Program : Window {
   VerticalLayout layout;
     HorizontalLayout installLayout;
       Label statusLabel;
@@ -29,7 +29,7 @@ struct Application : Window {
         Button helpButton;
         Canvas canvas;
 
-  Application(const string &pathname);
+  Program(const string &pathname);
   void synchronize();
   void refresh();
   void install();
@@ -57,13 +57,13 @@ struct RuleEditor : Window {
       LineEdit commandValue;
       Button commandSelect;
     HorizontalLayout controlLayout;
-      CheckBox defaultAction;
-      CheckBox filesAction;
-      CheckBox foldersAction;
+      CheckLabel defaultAction;
+      CheckLabel filesAction;
+      CheckLabel foldersAction;
       Widget spacer;
       Button assignButton;
 
-  bool modal;
+  //bool modal;
   signed index;
 
   RuleEditor();

@@ -1,12 +1,14 @@
-void pListView::append(const lstring &text) {
+namespace phoenix {
+
+void pListView::append(const lstring& text) {
   locked = true;
   auto items = qtListView->findItems("", Qt::MatchContains);
-  QTreeWidgetItem *item = new QTreeWidgetItem(qtListView);
+  QTreeWidgetItem* item = new QTreeWidgetItem(qtListView);
 
   item->setData(0, Qt::UserRole, (unsigned)items.size());
   if(listView.state.checkable) item->setCheckState(0, Qt::Unchecked);
-  for(unsigned n = 0; n < text.size(); n++) {
-    item->setText(n, QString::fromUtf8(text[n]));
+  for(unsigned position = 0; position < text.size(); position++) {
+    item->setText(position, QString::fromUtf8(text[position]));
   }
   locked = false;
 }
@@ -15,24 +17,9 @@ void pListView::autoSizeColumns() {
   for(unsigned n = 0; n < listView.state.headerText.size(); n++) qtListView->resizeColumnToContents(n);
 }
 
-bool pListView::checked(unsigned row) {
-  QTreeWidgetItem *item = qtListView->topLevelItem(row);
-  return item ? item->checkState(0) == Qt::Checked : false;
-}
-
-void pListView::modify(unsigned row, const lstring &text) {
+void pListView::remove(unsigned selection) {
   locked = true;
-  QTreeWidgetItem *item = qtListView->topLevelItem(row);
-  if(item == nullptr) return;
-  for(unsigned n = 0; n < text.size(); n++) {
-    item->setText(n, QString::fromUtf8(text[n]));
-  }
-  locked = false;
-}
-
-void pListView::remove(unsigned row) {
-  locked = true;
-  QTreeWidgetItem *item = qtListView->topLevelItem(row);
+  QTreeWidgetItem* item = qtListView->topLevelItem(selection);
   if(item == nullptr) return;
   delete item;
   locked = false;
@@ -42,17 +29,6 @@ void pListView::reset() {
   qtListView->clear();
 }
 
-bool pListView::selected() {
-  QTreeWidgetItem *item = qtListView->currentItem();
-  return (item && item->isSelected() == true);
-}
-
-unsigned pListView::selection() {
-  QTreeWidgetItem *item = qtListView->currentItem();
-  if(item == 0) return 0;
-  return item->data(0, Qt::UserRole).toUInt();
-}
-
 void pListView::setCheckable(bool checkable) {
   if(checkable) {
     auto items = qtListView->findItems("", Qt::MatchContains);
@@ -60,16 +36,16 @@ void pListView::setCheckable(bool checkable) {
   }
 }
 
-void pListView::setChecked(unsigned row, bool checked) {
+void pListView::setChecked(unsigned selection, bool checked) {
   locked = true;
-  QTreeWidgetItem *item = qtListView->topLevelItem(row);
+  QTreeWidgetItem* item = qtListView->topLevelItem(selection);
   if(item) item->setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
   locked = false;
 }
 
-void pListView::setHeaderText(const lstring &text) {
+void pListView::setHeaderText(const lstring& text) {
   QStringList labels;
-  for(auto &column : text) labels << QString::fromUtf8(column);
+  for(auto& column : text) labels << QString::fromUtf8(column);
 
   qtListView->setColumnCount(text.size());
   qtListView->setAlternatingRowColors(text.size() >= 2);
@@ -82,31 +58,32 @@ void pListView::setHeaderVisible(bool visible) {
   autoSizeColumns();
 }
 
-void pListView::setImage(unsigned row, unsigned column, const nall::image &image) {
-  QTreeWidgetItem *item = qtListView->topLevelItem(row);
+void pListView::setImage(unsigned selection, unsigned position, const nall::image& image) {
+  QTreeWidgetItem* item = qtListView->topLevelItem(selection);
   if(item) {
-    if(image.empty() == 0) item->setIcon(column, CreateIcon(image));
-    if(image.empty() == 1) item->setIcon(column, QIcon());
+    if(image.empty() == 0) item->setIcon(position, CreateIcon(image));
+    if(image.empty() == 1) item->setIcon(position, QIcon());
   }
 }
 
 void pListView::setSelected(bool selected) {
-  QTreeWidgetItem *item = qtListView->currentItem();
+  QTreeWidgetItem* item = qtListView->currentItem();
   if(item) item->setSelected(selected);
 }
 
-void pListView::setSelection(unsigned row) {
+void pListView::setSelection(unsigned selection) {
   locked = true;
-  QTreeWidgetItem *item = qtListView->currentItem();
+  QTreeWidgetItem* item = qtListView->currentItem();
   if(item) item->setSelected(false);
-  qtListView->setCurrentItem(0);
-  auto items = qtListView->findItems("", Qt::MatchContains);
-  for(unsigned n = 0; n < items.size(); n++) {
-    if(items[n]->data(0, Qt::UserRole).toUInt() == row) {
-      qtListView->setCurrentItem(items[n]);
-      break;
-    }
-  }
+  item = qtListView->topLevelItem(selection);
+  if(item) qtListView->setCurrentItem(item);
+  locked = false;
+}
+
+void pListView::setText(unsigned selection, unsigned position, string text) {
+  locked = true;
+  QTreeWidgetItem* item = qtListView->topLevelItem(selection);
+  if(item) item->setText(position, QString::fromUtf8(text));
   locked = false;
 }
 
@@ -123,7 +100,7 @@ void pListView::constructor() {
   setCheckable(listView.state.checkable);
   setHeaderText(listView.state.headerText.size() ? listView.state.headerText : lstring{ " " });
   setHeaderVisible(listView.state.headerVisible);
-  for(auto &row : listView.state.text) append(row);
+  for(auto& row : listView.state.text) append(row);
   if(listView.state.checkable) {
     for(unsigned n = 0; n < listView.state.checked.size(); n++) {
       setChecked(n, listView.state.checked[n]);
@@ -136,7 +113,7 @@ void pListView::constructor() {
 
 void pListView::destructor() {
   delete qtListView;
-  qtWidget = qtListView = 0;
+  qtWidget = qtListView = nullptr;
 }
 
 void pListView::orphan() {
@@ -148,17 +125,26 @@ void pListView::onActivate() {
   if(locked == false && listView.onActivate) listView.onActivate();
 }
 
-void pListView::onChange(QTreeWidgetItem *item) {
-  //Qt bug workaround: clicking items with mouse does not mark items as selected
-  if(item) item->setSelected(true);
-  listView.state.selected = selected();
-  if(listView.state.selected) listView.state.selection = selection();
-  if(locked == false && listView.onChange) listView.onChange();
+void pListView::onChange(QTreeWidgetItem* item) {
+  bool selected = listView.state.selected;
+  unsigned selection = listView.state.selection;
+  if(item) {
+    item->setSelected(true);  //Qt bug workaround: clicking items with mouse does not mark items as selected
+    listView.state.selected = true;
+    listView.state.selection = item->data(0, Qt::UserRole).toUInt();
+  } else {
+    listView.state.selected = false;
+    listView.state.selection = 0;
+  }
+  if(selected != listView.state.selected || selection != listView.state.selection) {
+    if(!locked && listView.onChange) listView.onChange();
+  }
 }
 
-void pListView::onToggle(QTreeWidgetItem *item) {
-  unsigned row = item->data(0, Qt::UserRole).toUInt();
-  bool checkState = checked(row);
-  listView.state.checked[row] = checkState;
-  if(locked == false && listView.onToggle) listView.onToggle(row);
+void pListView::onToggle(QTreeWidgetItem* item) {
+  unsigned selection = item->data(0, Qt::UserRole).toUInt();
+  listView.state.checked[selection] = (item->checkState(0) == Qt::Checked);
+  if(!locked && listView.onToggle) listView.onToggle(selection);
+}
+
 }

@@ -1,1 +1,5 @@
-static Settings *settings = nullptr;
+namespace phoenix {
+
+static Settings* settings = nullptr;
+
+}

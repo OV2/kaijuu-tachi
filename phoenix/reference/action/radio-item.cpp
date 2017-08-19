@@ -1,18 +1,18 @@
-bool pRadioItem::checked() {
-  return false;
-}
+namespace phoenix {
 
 void pRadioItem::setChecked() {
 }
 
-void pRadioItem::setGroup(const set<RadioItem&> &group) {
+void pRadioItem::setGroup(const group<RadioItem>& group) {
 }
 
-void pRadioItem::setText(const string &text) {
+void pRadioItem::setText(string text) {
 }
 
 void pRadioItem::constructor() {
 }
 
 void pRadioItem::destructor() {
+}
+
 }

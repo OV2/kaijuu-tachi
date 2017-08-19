@@ -1,3 +1,5 @@
+namespace phoenix {
+
 void pAction::setEnabled(bool enabled) {
   gtk_widget_set_sensitive(widget, enabled);
 }
@@ -22,6 +24,8 @@ string pAction::mnemonic(string text) {
   return text;
 }
 
-void pAction::setFont(const string &font) {
+void pAction::setFont(string font) {
   pFont::setFont(widget, font);
+}
+
 }

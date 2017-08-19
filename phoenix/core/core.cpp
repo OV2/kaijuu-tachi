@@ -1,7 +1,24 @@
-#include "state.hpp"
-#include "layout/fixed-layout.cpp"
-#include "layout/horizontal-layout.cpp"
-#include "layout/vertical-layout.cpp"
+#if defined(PHOENIX_WINDOWS)
+  #include "../windows/header.hpp"
+#elif defined(PHOENIX_QT)
+  #include "../qt/header.hpp"
+#elif defined(PHOENIX_GTK)
+  #include "../gtk/header.hpp"
+#elif defined(PHOENIX_COCOA)
+  #include "../cocoa/header.hpp"
+#elif defined(PHOENIX_REFERENCE)
+  #include "../reference/header.hpp"
+#endif
+
+#include "core.hpp"
+using namespace nall;
+
+namespace phoenix {
+  #include "state.hpp"
+  #include "layout/fixed-layout.cpp"
+  #include "layout/horizontal-layout.cpp"
+  #include "layout/vertical-layout.cpp"
+}
 
 #if defined(PHOENIX_WINDOWS)
   #include "../windows/platform.cpp"
@@ -9,11 +26,55 @@
   #include "../qt/platform.cpp"
 #elif defined(PHOENIX_GTK)
   #include "../gtk/platform.cpp"
+#elif defined(PHOENIX_COCOA)
+  #include "../cocoa/platform.cpp"
 #elif defined(PHOENIX_REFERENCE)
   #include "../reference/platform.cpp"
 #endif
 
-static bool OS_quit = false;
+namespace phoenix {
+
+//Application
+//===========
+
+function<void ()> Application::main;
+
+function<void ()> Application::Windows::onModalBegin;
+function<void ()> Application::Windows::onModalEnd;
+
+function<void ()> Application::Cocoa::onAbout;
+function<void ()> Application::Cocoa::onActivate;
+function<void ()> Application::Cocoa::onPreferences;
+function<void ()> Application::Cocoa::onQuit;
+
+void Application::run() {
+  return pApplication::run();
+}
+
+bool Application::pendingEvents() {
+  return pApplication::pendingEvents();
+}
+
+void Application::processEvents() {
+  return pApplication::processEvents();
+}
+
+void Application::quit() {
+  applicationState.quit = true;
+  return pApplication::quit();
+}
+
+void Application::setName(const string& name) {
+  applicationState.name = name;
+}
+
+void Application::initialize() {
+  static bool initialized = false;
+  if(initialized == false) {
+    initialized = true;
+    return pApplication::initialize();
+  }
+}
 
 //Color
 //=====
@@ -22,7 +83,7 @@ uint32_t Color::rgb() const {
   return (255 << 24) + (red << 16) + (green << 8) + (blue << 0);
 }
 
-uint32_t Color::rgba() const {
+uint32_t Color::argb() const {
   return (alpha << 24) + (red << 16) + (green << 8) + (blue << 0);
 }
 
@@ -30,18 +91,18 @@ uint32_t Color::rgba() const {
 //========
 
 Position Geometry::position() const {
-  return { x, y };
+  return {x, y};
 }
 
 Size Geometry::size() const {
-  return { width, height };
+  return {width, height};
 }
 
 string Geometry::text() const {
-  return { x, ",", y, ",", width, ",", height };
+  return {x, ",", y, ",", width, ",", height};
 }
 
-Geometry::Geometry(const string &text) {
+Geometry::Geometry(const string& text) {
   lstring part = text.split(",");
   x = integer(part(0, "256"));
   y = integer(part(1, "256"));
@@ -52,12 +113,20 @@ Geometry::Geometry(const string &text) {
 //Font
 //====
 
-Geometry Font::geometry(const string &text) {
-  return pFont::geometry(description, text);
+string Font::serif(unsigned size, const string& style) {
+  return pFont::serif(size, style);
 }
 
-Font::Font(const string &description):
-description(description) {
+string Font::sans(unsigned size, const string& style) {
+  return pFont::sans(size, style);
+}
+
+string Font::monospace(unsigned size, const string& style) {
+  return pFont::monospace(size, style);
+}
+
+Size Font::size(const string& font, const string& text) {
+  return pFont::size(font, text);
 }
 
 //Desktop
@@ -69,6 +138,21 @@ Size Desktop::size() {
 
 Geometry Desktop::workspace() {
   return pDesktop::workspace();
+}
+
+//Monitor
+//=======
+
+unsigned Monitor::count() {
+  return pMonitor::count();
+}
+
+Geometry Monitor::geometry(unsigned monitor) {
+  return pMonitor::geometry(monitor);
+}
+
+unsigned Monitor::primary() {
+  return pMonitor::primary();
 }
 
 //Keyboard
@@ -101,50 +185,102 @@ bool Mouse::released(Mouse::Button button) {
   return !pressed(button);
 }
 
-//DialogWindow
-//============
+//BrowserWindow
+//=============
 
-string DialogWindow::fileOpen_(Window &parent, const string &path, const lstring &filter_) {
-  auto filter = filter_;
-  if(filter.size() == 0) filter.append("All files (*)");
-  return pDialogWindow::fileOpen(parent, path, filter);
+string BrowserWindow::directory() {
+  return pBrowserWindow::directory(state);
 }
 
-string DialogWindow::fileSave_(Window &parent, const string &path, const lstring &filter_) {
-  auto filter = filter_;
-  if(filter.size() == 0) filter.append("All files (*)");
-  return pDialogWindow::fileSave(parent, path, filter);
+string BrowserWindow::open() {
+  return pBrowserWindow::open(state);
 }
 
-string DialogWindow::folderSelect(Window &parent, const string &path) {
-  return pDialogWindow::folderSelect(parent, path);
+string BrowserWindow::save() {
+  return pBrowserWindow::save(state);
+}
+
+BrowserWindow& BrowserWindow::setFilters(const lstring& filters) {
+  state.filters = filters;
+  return *this;
+}
+
+BrowserWindow& BrowserWindow::setParent(Window& parent) {
+  state.parent = &parent;
+  return *this;
+}
+
+BrowserWindow& BrowserWindow::setPath(const string& path) {
+  state.path = path;
+  return *this;
+}
+
+BrowserWindow& BrowserWindow::setTitle(const string& title) {
+  state.title = title;
+  return *this;
+}
+
+BrowserWindow::BrowserWindow():
+state(*new State) {
+}
+
+BrowserWindow::~BrowserWindow() {
+  delete &state;
 }
 
 //MessageWindow
 //=============
 
-MessageWindow::Response MessageWindow::information(Window &parent, const string &text, MessageWindow::Buttons buttons) {
-  return pMessageWindow::information(parent, text, buttons);
+MessageWindow::Response MessageWindow::error(MessageWindow::Buttons buttons) {
+  state.buttons = buttons;
+  return pMessageWindow::error(state);
 }
 
-MessageWindow::Response MessageWindow::question(Window &parent, const string &text, MessageWindow::Buttons buttons) {
-  return pMessageWindow::question(parent, text, buttons);
+MessageWindow::Response MessageWindow::information(MessageWindow::Buttons buttons) {
+  state.buttons = buttons;
+  return pMessageWindow::information(state);
 }
 
-MessageWindow::Response MessageWindow::warning(Window &parent, const string &text, MessageWindow::Buttons buttons) {
-  return pMessageWindow::warning(parent, text, buttons);
+MessageWindow::Response MessageWindow::question(MessageWindow::Buttons buttons) {
+  state.buttons = buttons;
+  return pMessageWindow::question(state);
 }
 
-MessageWindow::Response MessageWindow::critical(Window &parent, const string &text, MessageWindow::Buttons buttons) {
-  return pMessageWindow::critical(parent, text, buttons);
+MessageWindow& MessageWindow::setParent(Window& parent) {
+  state.parent = &parent;
+  return *this;
+}
+
+MessageWindow& MessageWindow::setText(const string& text) {
+  state.text = text;
+  return *this;
+}
+
+MessageWindow& MessageWindow::setTitle(const string& title) {
+  state.title = title;
+  return *this;
+}
+
+MessageWindow::Response MessageWindow::warning(MessageWindow::Buttons buttons) {
+  state.buttons = buttons;
+  return pMessageWindow::warning(state);
+}
+
+MessageWindow::MessageWindow(const string& text):
+state(*new State) {
+  state.text = text;
+}
+
+MessageWindow::~MessageWindow() {
+  delete &state;
 }
 
 //Object
 //======
 
-Object::Object(pObject &p):
+Object::Object(pObject& p):
 p(p) {
-  OS::initialize();
+  Application::initialize();
   p.constructor();
 }
 
@@ -153,45 +289,25 @@ Object::~Object() {
   delete &p;
 }
 
-//OS
-//==
-
-void OS::main() {
-  return pOS::main();
-}
-
-bool OS::pendingEvents() {
-  return pOS::pendingEvents();
-}
-
-void OS::processEvents() {
-  return pOS::processEvents();
-}
-
-void OS::quit() {
-  OS_quit = true;
-  return pOS::quit();
-}
-
-void OS::initialize() {
-  static bool initialized = false;
-  if(initialized == false) {
-    initialized = true;
-    return pOS::initialize();
-  }
-}
-
 //Timer
 //=====
+
+bool Timer::enabled() const {
+  return state.enabled;
+}
+
+unsigned Timer::interval() const {
+  return state.interval;
+}
 
 void Timer::setEnabled(bool enabled) {
   state.enabled = enabled;
   return p.setEnabled(enabled);
 }
 
-void Timer::setInterval(unsigned milliseconds) {
-  state.milliseconds = milliseconds;
-  return p.setInterval(milliseconds);
+void Timer::setInterval(unsigned interval) {
+  state.interval = interval;
+  return p.setInterval(interval);
 }
 
 Timer::Timer():
@@ -210,35 +326,36 @@ Timer::~Timer() {
 //Window
 //======
 
-Window& Window::none() {
-  return pWindow::none();
-}
-
-void Window::append_(Layout &layout) {
+void Window::append(Layout& layout) {
   if(state.layout.append(layout)) {
-    ((Sizable&)layout).state.window = this;
-    ((Sizable&)layout).state.layout = 0;
+    layout.Sizable::state.parent = nullptr;
+    layout.Sizable::state.window = this;
     p.append(layout);
     layout.synchronizeLayout();
   }
 }
 
-void Window::append_(Menu &menu) {
+void Window::append(Menu& menu) {
   if(state.menu.append(menu)) {
-    ((Action&)menu).state.window = this;
+    menu.Action::state.window = this;
     p.append(menu);
   }
 }
 
-void Window::append_(Widget &widget) {
+void Window::append(Widget& widget) {
   if(state.widget.append(widget)) {
-    ((Sizable&)widget).state.window = this;
+    widget.Sizable::state.window = this;
     p.append(widget);
+    widget.synchronizeLayout();
   }
 }
 
-Color Window::backgroundColor() {
-  return p.backgroundColor();
+Color Window::backgroundColor() const {
+  return state.backgroundColor;
+}
+
+bool Window::droppable() const {
+  return state.droppable;
 }
 
 Geometry Window::frameGeometry() {
@@ -258,7 +375,7 @@ bool Window::focused() {
   return p.focused();
 }
 
-bool Window::fullScreen() {
+bool Window::fullScreen() const {
   return state.fullScreen;
 }
 
@@ -266,38 +383,55 @@ Geometry Window::geometry() {
   return p.geometry();
 }
 
-void Window::ignore() {
-  state.ignore = true;
+string Window::menuFont() const {
+  return state.menuFont;
 }
 
-void Window::remove_(Layout &layout) {
+bool Window::menuVisible() const {
+  return state.menuVisible;
+}
+
+bool Window::modal() const {
+  return state.modal;
+}
+
+void Window::remove(Layout& layout) {
   if(state.layout.remove(layout)) {
     p.remove(layout);
-    ((Sizable&)layout).state.window = 0;
+    layout.Sizable::state.window = nullptr;
   }
 }
 
-void Window::remove_(Menu &menu) {
+void Window::remove(Menu& menu) {
   if(state.menu.remove(menu)) {
     p.remove(menu);
-    ((Action&)menu).state.window = 0;
+    menu.Action::state.window = nullptr;
   }
 }
 
-void Window::remove_(Widget &widget) {
+void Window::remove(Widget& widget) {
   if(state.widget.remove(widget)) {
     p.remove(widget);
-    ((Sizable&)widget).state.window = 0;
+    widget.Sizable::state.window = nullptr;
   }
 }
 
-void Window::setBackgroundColor(const Color &color) {
+bool Window::resizable() const {
+  return state.resizable;
+}
+
+void Window::setBackgroundColor(Color color) {
   state.backgroundColorOverride = true;
   state.backgroundColor = color;
   return p.setBackgroundColor(color);
 }
 
-void Window::setFrameGeometry(const Geometry &geometry) {
+void Window::setDroppable(bool droppable) {
+  state.droppable = droppable;
+  return p.setDroppable(droppable);
+}
+
+void Window::setFrameGeometry(Geometry geometry) {
   Geometry margin = p.frameMargin();
   return setGeometry({
     geometry.x + margin.x, geometry.y + margin.y,
@@ -314,12 +448,12 @@ void Window::setFullScreen(bool fullScreen) {
   return p.setFullScreen(fullScreen);
 }
 
-void Window::setGeometry(const Geometry &geometry) {
+void Window::setGeometry(Geometry geometry) {
   state.geometry = geometry;
   return p.setGeometry(geometry);
 }
 
-void Window::setMenuFont(const string &font) {
+void Window::setMenuFont(const string& font) {
   state.menuFont = font;
   return p.setMenuFont(font);
 }
@@ -339,12 +473,12 @@ void Window::setResizable(bool resizable) {
   return p.setResizable(resizable);
 }
 
-void Window::setStatusFont(const string &font) {
+void Window::setStatusFont(const string& font) {
   state.statusFont = font;
   return p.setStatusFont(font);
 }
 
-void Window::setStatusText(const string &text) {
+void Window::setStatusText(const string& text) {
   state.statusText = text;
   return p.setStatusText(text);
 }
@@ -354,7 +488,7 @@ void Window::setStatusVisible(bool visible) {
   return p.setStatusVisible(visible);
 }
 
-void Window::setTitle(const string &text) {
+void Window::setTitle(const string& text) {
   state.title = text;
   return p.setTitle(text);
 }
@@ -365,21 +499,45 @@ void Window::setVisible(bool visible) {
   return p.setVisible(visible);
 }
 
-void Window::setWidgetFont(const string &font) {
+void Window::setWidgetFont(const string& font) {
   state.widgetFont = font;
   return p.setWidgetFont(font);
 }
 
-string Window::statusText() {
+void Window::setWindowGeometry(Geometry geometry) {
+  Geometry margin = p.frameMargin();
+  return setGeometry({
+    geometry.x + margin.x, geometry.y + margin.y,
+    geometry.width, geometry.height
+  });
+}
+
+string Window::statusFont() const {
+  return state.statusFont;
+}
+
+string Window::statusText() const {
   return state.statusText;
 }
 
-void Window::synchronizeLayout() {
-  if(visible() && OS_quit == false) setGeometry(geometry());
+bool Window::statusVisible() const {
+  return state.statusVisible;
 }
 
-bool Window::visible() {
+void Window::synchronizeLayout() {
+  if(visible() && applicationState.quit == false) setGeometry(geometry());
+}
+
+string Window::title() const {
+  return state.title;
+}
+
+bool Window::visible() const {
   return state.visible;
+}
+
+string Window::widgetFont() const {
+  return state.widgetFont;
 }
 
 Window::Window():
@@ -398,7 +556,7 @@ Window::~Window() {
 //Action
 //======
 
-bool Action::enabled() {
+bool Action::enabled() const {
   return state.enabled;
 }
 
@@ -412,11 +570,11 @@ void Action::setVisible(bool visible) {
   return p.setVisible(visible);
 }
 
-bool Action::visible() {
+bool Action::visible() const {
   return state.visible;
 }
 
-Action::Action(pAction &p):
+Action::Action(pAction& p):
 state(*new State),
 Object(p),
 p(p) {
@@ -431,8 +589,8 @@ Action::~Action() {
 //Menu
 //====
 
-void Menu::append(const set<Action&> &list) {
-  for(auto &action : list) {
+void Menu::append(const group<Action>& list) {
+  for(auto& action : list) {
     if(state.action.append(action)) {
       action.state.menu = this;
       p.append(action);
@@ -440,23 +598,31 @@ void Menu::append(const set<Action&> &list) {
   }
 }
 
-void Menu::remove(const set<Action&> &list) {
-  for(auto &action : list) {
+image Menu::image() const {
+  return state.image;
+}
+
+void Menu::remove(const group<Action>& list) {
+  for(auto& action : list) {
     if(state.action.remove(action)) {
-      action.state.menu = 0;
+      action.state.menu = nullptr;
       return p.remove(action);
     }
   }
 }
 
-void Menu::setImage(const image &image) {
+void Menu::setImage(const nall::image& image) {
   state.image = image;
   return p.setImage(image);
 }
 
-void Menu::setText(const string &text) {
+void Menu::setText(const string& text) {
   state.text = text;
   return p.setText(text);
+}
+
+string Menu::text() const {
+  return state.text;
 }
 
 Menu::Menu():
@@ -489,14 +655,22 @@ Separator::~Separator() {
 //Item
 //====
 
-void Item::setImage(const image &image) {
+image Item::image() const {
+  return state.image;
+}
+
+void Item::setImage(const nall::image& image) {
   state.image = image;
   return p.setImage(image);
 }
 
-void Item::setText(const string &text) {
+void Item::setText(const string& text) {
   state.text = text;
   return p.setText(text);
+}
+
+string Item::text() const {
+  return state.text;
 }
 
 Item::Item():
@@ -515,8 +689,8 @@ Item::~Item() {
 //CheckItem
 //=========
 
-bool CheckItem::checked() {
-  return p.checked();
+bool CheckItem::checked() const {
+  return state.checked;
 }
 
 void CheckItem::setChecked(bool checked) {
@@ -524,9 +698,13 @@ void CheckItem::setChecked(bool checked) {
   return p.setChecked(checked);
 }
 
-void CheckItem::setText(const string &text) {
+void CheckItem::setText(const string& text) {
   state.text = text;
   return p.setText(text);
+}
+
+string CheckItem::text() const {
+  return state.text;
 }
 
 CheckItem::CheckItem():
@@ -545,27 +723,27 @@ CheckItem::~CheckItem() {
 //RadioItem
 //=========
 
-void RadioItem::group(const set<RadioItem&> &list) {
-  for(auto &item : list) item.p.setGroup(item.state.group = list);
-  if(list.size()) list[0].setChecked();
+void RadioItem::group(const nall::group<RadioItem>& list) {
+  for(auto& item : list) item.p.setGroup(item.state.group = list);
+  if(list.size()) list.first().setChecked();
 }
 
-bool RadioItem::checked() {
-  return p.checked();
+bool RadioItem::checked() const {
+  return state.checked;
 }
 
 void RadioItem::setChecked() {
-  for(auto &item : state.group) item.state.checked = false;
+  for(auto& item : state.group) item.state.checked = false;
   state.checked = true;
   return p.setChecked();
 }
 
-void RadioItem::setText(const string &text) {
+void RadioItem::setText(const string& text) {
   state.text = text;
   return p.setText(text);
 }
 
-string RadioItem::text() {
+string RadioItem::text() const {
   return state.text;
 }
 
@@ -578,7 +756,7 @@ p(base_from_member<pRadioItem&>::value) {
 }
 
 RadioItem::~RadioItem() {
-  for(auto &item : state.group) {
+  for(auto& item : state.group) {
     if(&item != this) item.state.group.remove(*this);
   }
   p.destructor();
@@ -588,16 +766,40 @@ RadioItem::~RadioItem() {
 //Sizable
 //=======
 
-Layout* Sizable::layout() {
-  return state.layout;
+bool Sizable::enabled() const {
+  return state.enabled;
 }
 
-Window* Sizable::window() {
-  if(state.layout) return state.layout->window();
+bool Sizable::enabledToAll() const {
+  if(state.enabled == false) return false;
+  if(state.parent) return state.parent->enabledToAll();
+  return true;
+}
+
+Layout* Sizable::layout() const {
+  if(state.parent && dynamic_cast<Layout*>(state.parent)) return (Layout*)state.parent;
+  return nullptr;
+}
+
+Sizable* Sizable::parent() const {
+  return state.parent;
+}
+
+bool Sizable::visible() const {
+  return state.visible;
+}
+
+bool Sizable::visibleToAll() const {
+  if(state.visible == false) return false;
+  if(state.parent) return state.parent->visibleToAll();
+  return true;
+}
+
+Window* Sizable::window() const {
   return state.window;
 }
 
-Sizable::Sizable(pSizable &p):
+Sizable::Sizable(pSizable& p):
 state(*new State),
 Object(p),
 p(p) {
@@ -613,29 +815,32 @@ Sizable::~Sizable() {
 //Layout
 //======
 
-void Layout::append(Sizable &sizable) {
-  sizable.state.layout = this;
-  sizable.state.window = 0;
+void Layout::append(Sizable& sizable) {
+  sizable.state.parent = this;
+  sizable.state.window = Sizable::state.window;
 
   if(dynamic_cast<Layout*>(&sizable)) {
-    Layout &layout = (Layout&)sizable;
+    Layout& layout = (Layout&)sizable;
     layout.synchronizeLayout();
   }
 
   if(dynamic_cast<Widget*>(&sizable)) {
-    Widget &widget = (Widget&)sizable;
+    Widget& widget = (Widget&)sizable;
     if(sizable.window()) sizable.window()->append(widget);
   }
 }
 
-void Layout::remove(Sizable &sizable) {
+void Layout::remove(Sizable& sizable) {
   if(dynamic_cast<Widget*>(&sizable)) {
-    Widget &widget = (Widget&)sizable;
+    Widget& widget = (Widget&)sizable;
     if(sizable.window()) sizable.window()->remove(widget);
   }
 
-  sizable.state.layout = 0;
-  sizable.state.window = 0;
+  sizable.state.parent = nullptr;
+  sizable.state.window = nullptr;
+}
+
+void Layout::reset() {
 }
 
 Layout::Layout():
@@ -645,7 +850,7 @@ Sizable(base_from_member<pLayout&>::value),
 p(base_from_member<pLayout&>::value) {
 }
 
-Layout::Layout(pLayout &p):
+Layout::Layout(pLayout& p):
 state(*new State),
 base_from_member<pLayout&>(p),
 Sizable(p),
@@ -654,7 +859,7 @@ p(p) {
 
 Layout::~Layout() {
   if(layout()) layout()->remove(*this);
-  else if(window()) window()->remove(*this);
+  if(window()) window()->remove(*this);
   p.destructor();
   delete &state;
 }
@@ -662,24 +867,24 @@ Layout::~Layout() {
 //Widget
 //======
 
-bool Widget::enabled() {
-  return state.enabled;
+bool Widget::focused() {
+  return p.focused();
 }
 
-string Widget::font() {
+string Widget::font() const {
   return state.font;
 }
 
-Geometry Widget::geometry() {
+Geometry Widget::geometry() const {
   return state.geometry;
 }
 
-Geometry Widget::minimumGeometry() {
-  return p.minimumGeometry();
+Size Widget::minimumSize() {
+  return p.minimumSize();
 }
 
 void Widget::setEnabled(bool enabled) {
-  state.enabled = enabled;
+  Sizable::state.enabled = enabled;
   return p.setEnabled(enabled);
 }
 
@@ -687,23 +892,22 @@ void Widget::setFocused() {
   return p.setFocused();
 }
 
-void Widget::setFont(const string &font) {
+void Widget::setFont(const string& font) {
   state.font = font;
   return p.setFont(font);
 }
 
-void Widget::setGeometry(const Geometry &geometry) {
+void Widget::setGeometry(Geometry geometry) {
   state.geometry = geometry;
   return p.setGeometry(geometry);
 }
 
 void Widget::setVisible(bool visible) {
-  state.visible = visible;
+  Sizable::state.visible = visible;
   return p.setVisible(visible);
 }
 
-bool Widget::visible() {
-  return state.visible;
+void Widget::synchronizeLayout() {
 }
 
 Widget::Widget():
@@ -715,7 +919,7 @@ p(base_from_member<pWidget&>::value) {
   p.constructor();
 }
 
-Widget::Widget(pWidget &p):
+Widget::Widget(pWidget& p):
 state(*new State),
 base_from_member<pWidget&>(p),
 Sizable(base_from_member<pWidget&>::value),
@@ -731,15 +935,27 @@ Widget::~Widget() {
 //Button
 //======
 
-void Button::setImage(const image &image, Orientation orientation) {
+image Button::image() const {
+  return state.image;
+}
+
+Orientation Button::orientation() const {
+  return state.orientation;
+}
+
+void Button::setImage(const nall::image& image, Orientation orientation) {
   state.image = image;
   state.orientation = orientation;
   return p.setImage(image, orientation);
 }
 
-void Button::setText(const string &text) {
+void Button::setText(const string& text) {
   state.text = text;
   return p.setText(text);
+}
+
+nall::string Button::text() const {
+  return state.text;
 }
 
 Button::Button():
@@ -758,33 +974,87 @@ Button::~Button() {
 //Canvas
 //======
 
-uint32_t* Canvas::data() {
+Color Canvas::color() const {
+  return state.color;
+}
+
+uint32_t* Canvas::data() const {
   return state.data;
 }
 
-bool Canvas::setImage(const nall::image &image) {
-  if(image.data == nullptr || image.width == 0 || image.height == 0) return false;
-  state.width = image.width;
-  state.height = image.height;
-  setSize({ state.width, state.height });
-  memcpy(state.data, image.data, state.width * state.height * sizeof(uint32_t));
-  return true;
+bool Canvas::droppable() const {
+  return state.droppable;
 }
 
-void Canvas::setSize(const Size &size) {
+vector<Color> Canvas::gradient() const {
+  return state.gradient;
+}
+
+image Canvas::image() const {
+  return state.image;
+}
+
+Canvas::Mode Canvas::mode() const {
+  return state.mode;
+}
+
+void Canvas::setColor(Color color) {
+  state.color = color;
+  return setMode(Canvas::Mode::Color);
+}
+
+void Canvas::setData() {
+  if(state.width == 0 || state.height == 0) return;  //dynamic sizing not supported in Mode::Data
+  return setMode(Canvas::Mode::Data);
+}
+
+void Canvas::setDroppable(bool droppable) {
+  state.droppable = droppable;
+  return p.setDroppable(droppable);
+}
+
+void Canvas::setGradient(Color topLeft, Color topRight, Color bottomLeft, Color bottomRight) {
+  state.gradient[0] = topLeft;
+  state.gradient[1] = topRight;
+  state.gradient[2] = bottomLeft;
+  state.gradient[3] = bottomRight;
+  return setMode(Canvas::Mode::Gradient);
+}
+
+void Canvas::setHorizontalGradient(Color left, Color right) {
+  state.gradient[0] = state.gradient[2] = left;
+  state.gradient[1] = state.gradient[3] = right;
+  return setMode(Canvas::Mode::Gradient);
+}
+
+void Canvas::setImage(const nall::image& image) {
+  state.image = image;
+  return setMode(Canvas::Mode::Image);
+}
+
+void Canvas::setMode(Mode mode) {
+  state.mode = mode;
+  return p.setMode(mode);
+}
+
+void Canvas::setSize(Size size) {
+  if(size.width == Size::Maximum) size.width = 0;
+  if(size.height == Size::Maximum) size.height = 0;
   state.width = size.width;
   state.height = size.height;
   delete[] state.data;
-  state.data = new uint32_t[size.width * size.height];
-  return p.setSize(size);
+  state.data = new uint32_t[state.width * state.height]();
+  return setMode(state.mode);
 }
 
-Size Canvas::size() {
-  return { state.width, state.height };
+void Canvas::setVerticalGradient(Color top, Color bottom) {
+  state.gradient[0] = state.gradient[1] = top;
+  state.gradient[2] = state.gradient[3] = bottom;
+  return setMode(Canvas::Mode::Gradient);
 }
 
-void Canvas::update() {
-  return p.update();
+Size Canvas::size() const {
+  return {state.width, state.height};
 }
 
 Canvas::Canvas():
@@ -792,7 +1062,7 @@ state(*new State),
 base_from_member<pCanvas&>(*new pCanvas(*this)),
 Widget(base_from_member<pCanvas&>::value),
 p(base_from_member<pCanvas&>::value) {
-  state.data = new uint32_t[state.width * state.height];
+  state.data = new uint32_t[state.width * state.height]();
   p.constructor();
 }
 
@@ -802,94 +1072,228 @@ Canvas::~Canvas() {
   delete &state;
 }
 
-//CheckBox
-//========
+//CheckButton
+//===========
 
-bool CheckBox::checked() {
-  return p.checked();
+bool CheckButton::checked() const {
+  return state.checked;
 }
 
-void CheckBox::setChecked(bool checked) {
+image CheckButton::image() const {
+  return state.image;
+}
+
+void CheckButton::setChecked(bool checked) {
   state.checked = checked;
   return p.setChecked(checked);
 }
 
-void CheckBox::setText(const string &text) {
+void CheckButton::setImage(const nall::image& image, Orientation orientation) {
+  state.image = image;
+  state.orientation = orientation;
+  return p.setImage(image, orientation);
+}
+
+void CheckButton::setText(const string& text) {
   state.text = text;
   return p.setText(text);
 }
 
-CheckBox::CheckBox():
+string CheckButton::text() const {
+  return state.text;
+}
+
+CheckButton::CheckButton():
 state(*new State),
-base_from_member<pCheckBox&>(*new pCheckBox(*this)),
-Widget(base_from_member<pCheckBox&>::value),
-p(base_from_member<pCheckBox&>::value) {
+base_from_member<pCheckButton&>(*new pCheckButton(*this)),
+Widget(base_from_member<pCheckButton&>::value),
+p(base_from_member<pCheckButton&>::value) {
   p.constructor();
 }
 
-CheckBox::~CheckBox() {
+CheckButton::~CheckButton() {
   p.destructor();
   delete &state;
 }
 
-//ComboBox
-//========
+//CheckLabel
+//==========
 
-void ComboBox::append_(const lstring &list) {
-  for(auto &text : list) {
-    state.text.append(text);
-    p.append(text);
-  }
+bool CheckLabel::checked() const {
+  return state.checked;
 }
 
-void ComboBox::modify(unsigned row, const string &text) {
-  state.text(row) = text;
-  p.modify(row, text);
+void CheckLabel::setChecked(bool checked) {
+  state.checked = checked;
+  return p.setChecked(checked);
 }
 
-void ComboBox::remove(unsigned row) {
-  state.text.remove(row);
-  p.remove(row);
+void CheckLabel::setText(const string& text) {
+  state.text = text;
+  return p.setText(text);
 }
 
-void ComboBox::reset() {
+string CheckLabel::text() const {
+  return state.text;
+}
+
+CheckLabel::CheckLabel():
+state(*new State),
+base_from_member<pCheckLabel&>(*new pCheckLabel(*this)),
+Widget(base_from_member<pCheckLabel&>::value),
+p(base_from_member<pCheckLabel&>::value) {
+  p.constructor();
+}
+
+CheckLabel::~CheckLabel() {
+  p.destructor();
+  delete &state;
+}
+
+
+//ComboButton
+//===========
+
+void ComboButton::append(const string& text) {
+  state.text.append(text);
+  return p.append(text);
+}
+
+void ComboButton::remove(unsigned selection) {
+  if(selection >= state.text.size()) return;
+  state.text.remove(selection);
+  p.remove(selection);
+}
+
+void ComboButton::reset() {
   state.selection = 0;
   state.text.reset();
   return p.reset();
 }
 
-unsigned ComboBox::selection() {
-  return p.selection();
+unsigned ComboButton::rows() const {
+  return state.text.size();
 }
 
-void ComboBox::setSelection(unsigned row) {
-  state.selection = row;
-  return p.setSelection(row);
+unsigned ComboButton::selection() const {
+  return state.selection;
 }
 
-string ComboBox::text() {
-  return state.text(selection());
+void ComboButton::setSelection(unsigned selection) {
+  if(selection >= state.text.size()) return;
+  state.selection = selection;
+  return p.setSelection(selection);
 }
 
-string ComboBox::text(unsigned row) {
-  return state.text(row);
+void ComboButton::setText(unsigned selection, const string& text) {
+  if(selection >= state.text.size()) return;
+  state.text[selection] = text;
+  p.setText(selection, text);
 }
 
-ComboBox::ComboBox():
+string ComboButton::text() const {
+  if(state.text.empty()) return "";
+  return state.text[state.selection];
+}
+
+string ComboButton::text(unsigned selection) const {
+  if(selection >= state.text.size()) return "";
+  return state.text[selection];
+}
+
+ComboButton::ComboButton():
 state(*new State),
-base_from_member<pComboBox&>(*new pComboBox(*this)),
-Widget(base_from_member<pComboBox&>::value),
-p(base_from_member<pComboBox&>::value) {
+base_from_member<pComboButton&>(*new pComboButton(*this)),
+Widget(base_from_member<pComboButton&>::value),
+p(base_from_member<pComboButton&>::value) {
   p.constructor();
 }
 
-ComboBox::~ComboBox() {
+ComboButton::~ComboButton() {
+  p.destructor();
+  delete &state;
+}
+
+//Console
+//=======
+
+void Console::print(const string& text) {
+  return p.print(text);
+}
+
+void Console::reset() {
+  return p.reset();
+}
+
+Console::Console():
+state(*new State),
+base_from_member<pConsole&>(*new pConsole(*this)),
+Widget(base_from_member<pConsole&>::value),
+p(base_from_member<pConsole&>::value) {
+  p.constructor();
+}
+
+Console::~Console() {
+  p.destructor();
+  delete &state;
+}
+
+//Frame
+//=====
+
+void Frame::setLayout(Layout& layout) {
+  state.layout = &layout;
+  synchronizeLayout();
+}
+
+void Frame::setText(const string& text) {
+  state.text = text;
+  return p.setText(text);
+}
+
+void Frame::synchronizeLayout() {
+  if(state.layout == nullptr) return;
+  state.layout->Sizable::state.window = Sizable::state.window;
+  state.layout->Sizable::state.parent = this;
+  state.layout->state.widget = this;
+  state.layout->synchronizeLayout();
+}
+
+string Frame::text() const {
+  return state.text;
+}
+
+Frame::Frame():
+state(*new State),
+base_from_member<pFrame&>(*new pFrame(*this)),
+Widget(base_from_member<pFrame&>::value),
+p(base_from_member<pFrame&>::value) {
+  p.constructor();
+}
+
+Frame::~Frame() {
   p.destructor();
   delete &state;
 }
 
 //HexEdit
 //=======
+
+unsigned HexEdit::columns() const {
+  return state.columns;
+}
+
+unsigned HexEdit::length() const {
+  return state.length;
+}
+
+unsigned HexEdit::offset() const {
+  return state.offset;
+}
+
+unsigned HexEdit::rows() const {
+  return state.rows;
+}
 
 void HexEdit::setColumns(unsigned columns) {
   state.columns = columns;
@@ -928,36 +1332,36 @@ HexEdit::~HexEdit() {
   delete &state;
 }
 
-//HorizontalScrollBar
-//===================
+//HorizontalScroller
+//==================
 
-unsigned HorizontalScrollBar::length() {
+unsigned HorizontalScroller::length() const {
   return state.length;
 }
 
-unsigned HorizontalScrollBar::position() {
-  return p.position();
+unsigned HorizontalScroller::position() const {
+  return state.position;
 }
 
-void HorizontalScrollBar::setLength(unsigned length) {
+void HorizontalScroller::setLength(unsigned length) {
   state.length = length;
   return p.setLength(length);
 }
 
-void HorizontalScrollBar::setPosition(unsigned position) {
+void HorizontalScroller::setPosition(unsigned position) {
   state.position = position;
   return p.setPosition(position);
 }
 
-HorizontalScrollBar::HorizontalScrollBar():
+HorizontalScroller::HorizontalScroller():
 state(*new State),
-base_from_member<pHorizontalScrollBar&>(*new pHorizontalScrollBar(*this)),
-Widget(base_from_member<pHorizontalScrollBar&>::value),
-p(base_from_member<pHorizontalScrollBar&>::value) {
+base_from_member<pHorizontalScroller&>(*new pHorizontalScroller(*this)),
+Widget(base_from_member<pHorizontalScroller&>::value),
+p(base_from_member<pHorizontalScroller&>::value) {
   p.constructor();
 }
 
-HorizontalScrollBar::~HorizontalScrollBar() {
+HorizontalScroller::~HorizontalScroller() {
   p.destructor();
   delete &state;
 }
@@ -965,12 +1369,12 @@ HorizontalScrollBar::~HorizontalScrollBar() {
 //HorizontalSlider
 //================
 
-unsigned HorizontalSlider::length() {
+unsigned HorizontalSlider::length() const {
   return state.length;
 }
 
-unsigned HorizontalSlider::position() {
-  return p.position();
+unsigned HorizontalSlider::position() const {
+  return state.position;
 }
 
 void HorizontalSlider::setLength(unsigned length) {
@@ -999,9 +1403,13 @@ HorizontalSlider::~HorizontalSlider() {
 //Label
 //=====
 
-void Label::setText(const string &text) {
+void Label::setText(const string& text) {
   state.text = text;
   return p.setText(text);
+}
+
+string Label::text() const {
+  return state.text;
 }
 
 Label::Label():
@@ -1020,12 +1428,16 @@ Label::~Label() {
 //LineEdit
 //========
 
+bool LineEdit::editable() const {
+  return state.editable;
+}
+
 void LineEdit::setEditable(bool editable) {
   state.editable = editable;
   return p.setEditable(editable);
 }
 
-void LineEdit::setText(const string &text) {
+void LineEdit::setText(const string& text) {
   state.text = text;
   return p.setText(text);
 }
@@ -1050,8 +1462,9 @@ LineEdit::~LineEdit() {
 //ListView
 //========
 
-void ListView::append_(const lstring &text) {
+void ListView::append(const lstring& text) {
   state.checked.append(false);
+  state.image.append({});
   state.text.append(text);
   return p.append(text);
 }
@@ -1060,34 +1473,55 @@ void ListView::autoSizeColumns() {
   return p.autoSizeColumns();
 }
 
-bool ListView::checked(unsigned row) {
-  return p.checked(row);
+bool ListView::checkable() const {
+  return state.checkable;
 }
 
-void ListView::modify_(unsigned row, const lstring &text) {
-  state.text[row] = text;
-  return p.modify(row, text);
+bool ListView::checked(unsigned selection) const {
+  if(selection >= state.text.size()) return false;
+  return state.checked[selection];
 }
 
-void ListView::remove(unsigned row) {
-  state.text.remove(row);
-  state.image.remove(row);
-  return p.remove(row);
+unsigned ListView::columns() const {
+  return max(1u, state.headerText.size());
+}
+
+bool ListView::headerVisible() const {
+  return state.headerVisible;
+}
+
+image ListView::image(unsigned selection, unsigned position) const {
+  if(selection >= state.text.size()) return {};
+  return state.image[selection](position);
+}
+
+void ListView::remove(unsigned selection) {
+  if(selection >= state.text.size()) return;
+  state.checked.remove(selection);
+  state.image.remove(selection);
+  state.text.remove(selection);
+  return p.remove(selection);
 }
 
 void ListView::reset() {
   state.checked.reset();
   state.image.reset();
+  state.selected = false;
+  state.selection = 0;
   state.text.reset();
   return p.reset();
 }
 
-bool ListView::selected() {
-  return p.selected();
+unsigned ListView::rows() const {
+  return state.text.size();
 }
 
-unsigned ListView::selection() {
-  return p.selection();
+bool ListView::selected() const {
+  return state.selected;
+}
+
+unsigned ListView::selection() const {
+  return state.selection;
 }
 
 void ListView::setCheckable(bool checkable) {
@@ -1095,12 +1529,13 @@ void ListView::setCheckable(bool checkable) {
   return p.setCheckable(checkable);
 }
 
-void ListView::setChecked(unsigned row, bool checked) {
-  state.checked[row] = checked;
-  return p.setChecked(row, checked);
+void ListView::setChecked(unsigned selection, bool checked) {
+  if(selection >= state.text.size()) return;
+  state.checked[selection] = checked;
+  return p.setChecked(selection, checked);
 }
 
-void ListView::setHeaderText_(const lstring &text) {
+void ListView::setHeaderText(const lstring& text) {
   state.headerText = text;
   return p.setHeaderText(text);
 }
@@ -1110,9 +1545,10 @@ void ListView::setHeaderVisible(bool visible) {
   return p.setHeaderVisible(visible);
 }
 
-void ListView::setImage(unsigned row, unsigned column, const nall::image &image) {
-  state.image(row)(column) = image;
-  return p.setImage(row, column, image);
+void ListView::setImage(unsigned selection, unsigned position, const nall::image& image) {
+  if(selection >= state.text.size()) return;
+  state.image[selection](position) = image;
+  return p.setImage(selection, position, image);
 }
 
 void ListView::setSelected(bool selected) {
@@ -1120,10 +1556,29 @@ void ListView::setSelected(bool selected) {
   return p.setSelected(selected);
 }
 
-void ListView::setSelection(unsigned row) {
+void ListView::setSelection(unsigned selection) {
+  if(selection >= state.text.size()) return;
   state.selected = true;
-  state.selection = row;
-  return p.setSelection(row);
+  state.selection = selection;
+  return p.setSelection(selection);
+}
+
+void ListView::setText(unsigned selection, const lstring& text) {
+  if(selection >= state.text.size()) return;
+  for(unsigned position = 0; position < text.size(); position++) {
+    setText(selection, position, text[position]);
+  }
+}
+
+void ListView::setText(unsigned selection, unsigned position, const string& text) {
+  if(selection >= state.text.size()) return;
+  state.text[selection](position) = text;
+  return p.setText(selection, position, text);
+}
+
+string ListView::text(unsigned selection, unsigned position) const {
+  if(selection >= state.text.size()) return "";
+  return state.text[selection](position);
 }
 
 ListView::ListView():
@@ -1141,6 +1596,10 @@ ListView::~ListView() {
 
 //ProgressBar
 //===========
+
+unsigned ProgressBar::position() const {
+  return state.position;
+}
 
 void ProgressBar::setPosition(unsigned position) {
   state.position = position;
@@ -1160,47 +1619,192 @@ ProgressBar::~ProgressBar() {
   delete &state;
 }
 
-//RadioBox
-//========
+//RadioButton
+//===========
 
-void RadioBox::group(const set<RadioBox&> &list) {
-  for(auto &item : list) item.p.setGroup(item.state.group = list);
-  if(list.size()) list[0].setChecked();
+void RadioButton::group(const nall::group<RadioButton>& list) {
+  for(auto& item : list) item.p.setGroup(item.state.group = list);
+  if(list.size()) list.first().setChecked();
 }
 
-bool RadioBox::checked() {
-  return p.checked();
+bool RadioButton::checked() const {
+  return state.checked;
 }
 
-void RadioBox::setChecked() {
-  for(auto &item : state.group) item.state.checked = false;
+image RadioButton::image() const {
+  return state.image;
+}
+
+void RadioButton::setChecked() {
+  for(auto& item : state.group) item.state.checked = false;
   state.checked = true;
   return p.setChecked();
 }
 
-void RadioBox::setText(const string &text) {
+void RadioButton::setImage(const nall::image& image, Orientation orientation) {
+  state.image = image;
+  state.orientation = orientation;
+  return p.setImage(image, orientation);
+}
+
+void RadioButton::setText(const string& text) {
   state.text = text;
   return p.setText(text);
 }
 
-RadioBox::RadioBox():
+string RadioButton::text() const {
+  return state.text;
+}
+
+RadioButton::RadioButton():
 state(*new State),
-base_from_member<pRadioBox&>(*new pRadioBox(*this)),
-Widget(base_from_member<pRadioBox&>::value),
-p(base_from_member<pRadioBox&>::value) {
+base_from_member<pRadioButton&>(*new pRadioButton(*this)),
+Widget(base_from_member<pRadioButton&>::value),
+p(base_from_member<pRadioButton&>::value) {
   p.constructor();
 }
 
-RadioBox::~RadioBox() {
-  for(auto &item : state.group) {
+RadioButton::~RadioButton() {
+  for(auto& item : state.group) {
     if(&item != this) item.state.group.remove(*this);
   }
   p.destructor();
   delete &state;
 }
 
+//RadioLabel
+//==========
+
+void RadioLabel::group(const nall::group<RadioLabel>& list) {
+  for(auto& item : list) item.p.setGroup(item.state.group = list);
+  if(list.size()) list.first().setChecked();
+}
+
+bool RadioLabel::checked() const {
+  return state.checked;
+}
+
+void RadioLabel::setChecked() {
+  for(auto &item : state.group) item.state.checked = false;
+  state.checked = true;
+  return p.setChecked();
+}
+
+void RadioLabel::setText(const string& text) {
+  state.text = text;
+  return p.setText(text);
+}
+
+string RadioLabel::text() const {
+  return state.text;
+}
+
+RadioLabel::RadioLabel():
+state(*new State),
+base_from_member<pRadioLabel&>(*new pRadioLabel(*this)),
+Widget(base_from_member<pRadioLabel&>::value),
+p(base_from_member<pRadioLabel&>::value) {
+  p.constructor();
+}
+
+RadioLabel::~RadioLabel() {
+  for(auto& item : state.group) {
+    if(&item != this) item.state.group.remove(*this);
+  }
+  p.destructor();
+  delete &state;
+}
+
+//TabFrame
+//========
+
+void TabFrame::append(const string& text, const nall::image& image) {
+  state.image.append(image);
+  state.layout.append(nullptr);
+  state.text.append(text);
+  return p.append(text, image);
+}
+
+image TabFrame::image(unsigned selection) const {
+  if(selection >= state.text.size()) return {};
+  return state.image[selection];
+}
+
+void TabFrame::remove(unsigned selection) {
+  if(selection >= state.text.size()) return;
+  state.image.remove(selection);
+  state.layout.remove(selection);
+  state.text.remove(selection);
+  return p.remove(selection);
+}
+
+unsigned TabFrame::selection() const {
+  return state.selection;
+}
+
+void TabFrame::setImage(unsigned selection, const nall::image& image) {
+  if(selection >= state.text.size()) return;
+  state.image[selection] = image;
+  return p.setImage(selection, image);
+}
+
+void TabFrame::setLayout(unsigned selection, Layout& layout) {
+  if(selection >= state.text.size()) return;
+  state.layout[selection] = &layout;
+  synchronizeLayout();
+}
+
+void TabFrame::setSelection(unsigned selection) {
+  state.selection = selection;
+  return p.setSelection(selection);
+}
+
+void TabFrame::setText(unsigned selection, const string& text) {
+  if(selection >= state.text.size()) return;
+  state.text[selection] = text;
+  return p.setText(selection, text);
+}
+
+void TabFrame::synchronizeLayout() {
+  for(unsigned n = 0; n < state.layout.size(); n++) {
+    Layout* layout = state.layout[n];
+    if(layout == nullptr) continue;
+    layout->Sizable::state.parent = this;
+    layout->Sizable::state.window = Sizable::state.window;
+    layout->state.widget = this;
+    layout->state.widgetSelection = n;
+    layout->synchronizeLayout();
+  }
+}
+
+unsigned TabFrame::tabs() const {
+  return state.text.size();
+}
+
+string TabFrame::text(unsigned selection) const {
+  if(selection >= state.text.size()) return "";
+  return state.text[selection];
+}
+
+TabFrame::TabFrame():
+state(*new State),
+base_from_member<pTabFrame&>(*new pTabFrame(*this)),
+Widget(base_from_member<pTabFrame&>::value),
+p(base_from_member<pTabFrame&>::value) {
+  p.constructor();
+}
+
+TabFrame::~TabFrame() {
+  p.destructor();
+  delete &state;
+}
+
 //TextEdit
 //========
+
+bool TextEdit::editable() const {
+  return state.editable;
+}
 
 void TextEdit::setCursorPosition(unsigned position) {
   state.cursorPosition = position;
@@ -1212,7 +1816,7 @@ void TextEdit::setEditable(bool editable) {
   return p.setEditable(editable);
 }
 
-void TextEdit::setText(const string &text) {
+void TextEdit::setText(const string& text) {
   state.text = text;
   return p.setText(text);
 }
@@ -1224,6 +1828,10 @@ void TextEdit::setWordWrap(bool wordWrap) {
 
 string TextEdit::text() {
   return p.text();
+}
+
+bool TextEdit::wordWrap() const {
+  return state.wordWrap;
 }
 
 TextEdit::TextEdit():
@@ -1239,36 +1847,36 @@ TextEdit::~TextEdit() {
   delete &state;
 }
 
-//VerticalScrollBar
-//=================
+//VerticalScroller
+//================
 
-unsigned VerticalScrollBar::length() {
+unsigned VerticalScroller::length() const {
   return state.length;
 }
 
-unsigned VerticalScrollBar::position() {
-  return p.position();
+unsigned VerticalScroller::position() const {
+  return state.position;
 }
 
-void VerticalScrollBar::setLength(unsigned length) {
+void VerticalScroller::setLength(unsigned length) {
   state.length = length;
   return p.setLength(length);
 }
 
-void VerticalScrollBar::setPosition(unsigned position) {
+void VerticalScroller::setPosition(unsigned position) {
   state.position = position;
   return p.setPosition(position);
 }
 
-VerticalScrollBar::VerticalScrollBar():
+VerticalScroller::VerticalScroller():
 state(*new State),
-base_from_member<pVerticalScrollBar&>(*new pVerticalScrollBar(*this)),
-Widget(base_from_member<pVerticalScrollBar&>::value),
-p(base_from_member<pVerticalScrollBar&>::value) {
+base_from_member<pVerticalScroller&>(*new pVerticalScroller(*this)),
+Widget(base_from_member<pVerticalScroller&>::value),
+p(base_from_member<pVerticalScroller&>::value) {
   p.constructor();
 }
 
-VerticalScrollBar::~VerticalScrollBar() {
+VerticalScroller::~VerticalScroller() {
   p.destructor();
   delete &state;
 }
@@ -1276,12 +1884,12 @@ VerticalScrollBar::~VerticalScrollBar() {
 //VerticalSlider
 //==============
 
-unsigned VerticalSlider::length() {
+unsigned VerticalSlider::length() const {
   return state.length;
 }
 
-unsigned VerticalSlider::position() {
-  return p.position();
+unsigned VerticalSlider::position() const {
+  return state.position;
 }
 
 void VerticalSlider::setLength(unsigned length) {
@@ -1310,11 +1918,21 @@ VerticalSlider::~VerticalSlider() {
 //Viewport
 //========
 
+bool Viewport::droppable() const {
+  return state.droppable;
+}
+
 uintptr_t Viewport::handle() {
   return p.handle();
 }
 
+void Viewport::setDroppable(bool droppable) {
+  state.droppable = droppable;
+  return p.setDroppable(droppable);
+}
+
 Viewport::Viewport():
+state(*new State),
 base_from_member<pViewport&>(*new pViewport(*this)),
 Widget(base_from_member<pViewport&>::value),
 p(base_from_member<pViewport&>::value) {
@@ -1323,4 +1941,7 @@ p(base_from_member<pViewport&>::value) {
 
 Viewport::~Viewport() {
   p.destructor();
+  delete &state;
+}
+
 }

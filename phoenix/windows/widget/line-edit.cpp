@@ -1,13 +1,15 @@
-Geometry pLineEdit::minimumGeometry() {
-  Geometry geometry = pFont::geometry(hfont, lineEdit.state.text);
-  return { 0, 0, geometry.width + 12, geometry.height + 10 };
+namespace phoenix {
+
+Size pLineEdit::minimumSize() {
+  Size size = pFont::size(hfont, lineEdit.state.text);
+  return {size.width + 12, size.height + 10};
 }
 
 void pLineEdit::setEditable(bool editable) {
   SendMessage(hwnd, EM_SETREADONLY, editable == false, 0);
 }
 
-void pLineEdit::setText(const string &text) {
+void pLineEdit::setText(string text) {
   locked = true;
   SetWindowText(hwnd, utf16_t(text));
   locked = false;
@@ -25,7 +27,7 @@ void pLineEdit::constructor() {
   hwnd = CreateWindowEx(
     WS_EX_CLIENTEDGE, L"EDIT", L"",
     WS_CHILD | WS_TABSTOP | ES_AUTOHSCROLL | ES_AUTOVSCROLL,
-    0, 0, 0, 0, parentWindow->p.hwnd, (HMENU)id, GetModuleHandle(0), 0
+    0, 0, 0, 0, parentHwnd, (HMENU)id, GetModuleHandle(0), 0
   );
   SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&lineEdit);
   setDefaultFont();
@@ -42,4 +44,11 @@ void pLineEdit::destructor() {
 void pLineEdit::orphan() {
   destructor();
   constructor();
+}
+
+void pLineEdit::onChange() {
+  if(locked) return;
+  if(lineEdit.onChange) lineEdit.onChange();
+}
+
 }

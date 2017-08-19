@@ -1,9 +1,11 @@
+namespace phoenix {
+
 static vector<pTimer*> timers;
 
 static void CALLBACK Timer_timeoutProc(HWND hwnd, UINT msg, UINT_PTR timerID, DWORD time) {
-  for(auto &timer : timers) {
+  for(auto& timer : timers) {
     if(timer->htimer == timerID) {
-      if(timer->timer.onTimeout) timer->timer.onTimeout();
+      if(timer->timer.onActivate) timer->timer.onActivate();
       return;
     }
   }
@@ -16,11 +18,11 @@ void pTimer::setEnabled(bool enabled) {
   }
 
   if(enabled == true) {
-    htimer = SetTimer(NULL, 0U, timer.state.milliseconds, Timer_timeoutProc);
+    htimer = SetTimer(NULL, 0u, timer.state.interval, Timer_timeoutProc);
   }
 }
 
-void pTimer::setInterval(unsigned milliseconds) {
+void pTimer::setInterval(unsigned interval) {
   //destroy and recreate timer if interval changed
   setEnabled(timer.state.enabled);
 }
@@ -28,4 +30,6 @@ void pTimer::setInterval(unsigned milliseconds) {
 void pTimer::constructor() {
   timers.append(this);
   htimer = 0;
+}
+
 }

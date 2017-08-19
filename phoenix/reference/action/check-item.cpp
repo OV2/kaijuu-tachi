@@ -1,15 +1,15 @@
-bool pCheckItem::checked() {
-  return false;
-}
+namespace phoenix {
 
 void pCheckItem::setChecked(bool checked) {
 }
 
-void pCheckItem::setText(const string &text) {
+void pCheckItem::setText(string text) {
 }
 
 void pCheckItem::constructor() {
 }
 
 void pCheckItem::destructor() {
+}
+
 }

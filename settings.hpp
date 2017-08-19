@@ -25,7 +25,7 @@ struct Settings {
       });
     }
     for(auto &rule : rules) {
-      rule.multiSelection = rule.command.position("{paths}") || rule.command.position("{files}");
+      rule.multiSelection = rule.command.find("{paths}") || rule.command.find("{files}");
     }
   }
 
@@ -33,7 +33,7 @@ struct Settings {
     registry::remove("HKCU/Software/Kaijuu/");
     for(unsigned id = 0; id < rules.size(); id++) {
       auto &rule = rules(id);
-      string path = {"HKCU/Software/Kaijuu/", id, "/"};
+      string path = {"HKCU/Software/Kaijuu/", format<3,'0'>(id), "/"};
       registry::write({path, "Name"}, rule.name);
       registry::write({path, "Pattern"}, rule.pattern);
       registry::write({path, "Default"}, rule.defaultAction);

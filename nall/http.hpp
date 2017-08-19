@@ -19,12 +19,12 @@ namespace nall {
 
 struct http {
   string hostname;
-  addrinfo *serverinfo;
+  addrinfo* serverinfo;
   int serversocket;
   string header;
 
-  inline void download(const string &path, uint8_t *&data, unsigned &size) {
-    data = 0;
+  inline void download(const string& path, uint8_t*& data, unsigned& size) {
+    data = nullptr;
     size = 0;
 
     send({
@@ -59,11 +59,11 @@ struct http {
     return true;
   }
 
-  inline bool send(const string &data) {
+  inline bool send(const string& data) {
     return send((const uint8_t*)(const char*)data, data.length());
   }
 
-  inline bool send(const uint8_t *data, unsigned size) {
+  inline bool send(const uint8_t* data, unsigned size) {
     while(size) {
       int length = ::send(serversocket, (const char*)data, size, 0);
       if(length == -1) return false;
@@ -81,7 +81,7 @@ struct http {
       if(length <= 0) return output;
       buffer[1] = 0;
       output.append(buffer);
-    } while(output.endswith("\r\n\r\n") == false);
+    } while(output.endsWith("\r\n\r\n") == false);
     return output;
   }
 
@@ -93,14 +93,14 @@ struct http {
       if(length <= 0) return output;
       buffer[1] = 0;
       output.append(buffer);
-    } while(output.endswith("\r\n") == false);
+    } while(output.endsWith("\r\n") == false);
     return output;
   }
 
-  inline void downloadContent(uint8_t *&data, unsigned &size) {
+  inline void downloadContent(uint8_t*& data, unsigned& size) {
     unsigned capacity = 0;
 
-    if(header.iposition("\r\nTransfer-Encoding: chunked\r\n")) {
+    if(header.ifind("\r\nTransfer-Encoding: chunked\r\n")) {
       while(true) {
         unsigned length = hex(downloadChunkLength());
         if(length == 0) break;
@@ -116,7 +116,7 @@ struct http {
           length -= packetlength;
         }
       }
-    } else if(auto position = header.iposition("\r\nContent-Length: ")) {
+    } else if(auto position = header.ifind("\r\nContent-Length: ")) {
       unsigned length = decimal((const char*)header + position() + 18);
       while(length) {
         char buffer[256];
@@ -147,7 +147,7 @@ struct http {
   inline void disconnect() {
     close(serversocket);
     freeaddrinfo(serverinfo);
-    serverinfo = 0;
+    serverinfo = nullptr;
     serversocket = -1;
   }
 

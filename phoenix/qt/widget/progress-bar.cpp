@@ -1,5 +1,7 @@
-Geometry pProgressBar::minimumGeometry() {
-  return { 0, 0, 0, 25 };
+namespace phoenix {
+
+Size pProgressBar::minimumSize() {
+  return {0, 25};
 }
 
 void pProgressBar::setPosition(unsigned position) {
@@ -17,10 +19,12 @@ void pProgressBar::constructor() {
 
 void pProgressBar::destructor() {
   delete qtProgressBar;
-  qtWidget = qtProgressBar = 0;
+  qtWidget = qtProgressBar = nullptr;
 }
 
 void pProgressBar::orphan() {
   destructor();
   constructor();
+}
+
 }

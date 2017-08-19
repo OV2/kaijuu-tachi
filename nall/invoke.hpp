@@ -9,30 +9,31 @@
 //path environment variable is always consulted
 //execution is asynchronous (non-blocking); use system() for synchronous execution
 
+#include <nall/intrinsics.hpp>
 #include <nall/string.hpp>
-#ifdef _WIN32
+
+#if defined(PLATFORM_WINDOWS)
   #include <nall/windows/utf8.hpp>
 #endif
 
 namespace nall {
 
-#ifdef _WIN32
+#if defined(PLATFORM_WINDOWS)
 
-template<typename... Args>
-inline void invoke(const string &name, Args&&... args) {
+template<typename... Args> inline void invoke(const string& name, Args&&... args) {
   lstring argl(std::forward<Args>(args)...);
-  for(auto &arg : argl) if(arg.position(" ")) arg = {"\"", arg, "\""};
-  string arguments = argl.concatenate(" ");
+  for(auto& arg : argl) if(arg.find(" ")) arg = {"\"", arg, "\""};
+  string arguments = argl.merge(" ");
   ShellExecuteW(NULL, NULL, utf16_t(name), utf16_t(arguments), NULL, SW_SHOWNORMAL);
 }
 
-#else
+#elif defined(PLATFORM_X)
 
-template<typename... Args>
-inline void invoke(const string &name, Args&&... args) {
+template<typename... Args> inline void invoke(const string& name, Args&&... args) {
   pid_t pid = fork();
   if(pid == 0) {
-    const char *argv[1 + sizeof...(args) + 1], **argp = argv;
+    const char* argv[1 + sizeof...(args) + 1];
+    const char** argp = argv;
     lstring argl(std::forward<Args>(args)...);
     *argp++ = (const char*)name;
     for(auto &arg : argl) *argp++ = (const char*)arg;
@@ -43,6 +44,11 @@ inline void invoke(const string &name, Args&&... args) {
     }
     exit(0);
   }
+}
+
+#else
+
+template<typename... Args> inline void invoke(const string& name, Args&&... args) {
 }
 
 #endif

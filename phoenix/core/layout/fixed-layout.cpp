@@ -1,30 +1,25 @@
-void FixedLayout::append(Sizable &sizable, const Geometry &geometry) {
-  children.append({ &sizable, geometry });
+void FixedLayout::append(Sizable& sizable, Geometry geometry) {
+  children.append({&sizable, geometry});
   synchronizeLayout();
   if(window()) window()->synchronizeLayout();
 }
 
-void FixedLayout::append(Sizable &sizable) {
-  for(auto &child : children) if(child.sizable == &sizable) return;
+void FixedLayout::append(Sizable& sizable) {
+  for(auto& child : children) if(child.sizable == &sizable) return;
   Layout::append(sizable);
   if(window()) window()->synchronizeLayout();
 }
 
-bool FixedLayout::enabled() {
-  if(layout()) return state.enabled && layout()->enabled();
-  return state.enabled;
-}
-
-Geometry FixedLayout::minimumGeometry() {
-  unsigned width = MinimumSize, height = MinimumSize;
-  for(auto &child : children) {
-    width  = max(width,  child.sizable->minimumGeometry().width);
-    height = max(height, child.sizable->minimumGeometry().height);
+Size FixedLayout::minimumSize() {
+  unsigned width = Size::Minimum, height = Size::Minimum;
+  for(auto& child : children) {
+    width  = max(width,  child.sizable->minimumSize().width);
+    height = max(height, child.sizable->minimumSize().height);
   }
-  return { 0, 0, width, height };
+  return {width, height};
 }
 
-void FixedLayout::remove(Sizable &sizable) {
+void FixedLayout::remove(Sizable& sizable) {
   for(unsigned n = 0; n < children.size(); n++) {
     if(children[n].sizable == &sizable) {
       children.remove(n);
@@ -36,43 +31,36 @@ void FixedLayout::remove(Sizable &sizable) {
 }
 
 void FixedLayout::reset() {
-  for(auto &child : children) {
+  for(auto& child : children) {
     if(window() && dynamic_cast<Widget*>(child.sizable)) window()->remove((Widget&)*child.sizable);
   }
 }
 
 void FixedLayout::setEnabled(bool enabled) {
-  state.enabled = enabled;
-  for(auto &child : children) {
-    child.sizable->setVisible(dynamic_cast<Widget*>(child.sizable) ? child.sizable->enabled() : enabled);
+  Sizable::state.enabled = enabled;
+  for(auto& child : children) {
+    child.sizable->setEnabled(child.sizable->enabled());
   }
 }
 
-void FixedLayout::setGeometry(const Geometry &geometry) {
+void FixedLayout::setGeometry(Geometry geometry) {
 }
 
 void FixedLayout::setVisible(bool visible) {
-  state.visible = visible;
-  for(auto &child : children) {
-    child.sizable->setVisible(dynamic_cast<Widget*>(child.sizable) ? child.sizable->visible() : visible);
+  Sizable::state.visible = visible;
+  for(auto& child : children) {
+    child.sizable->setVisible(child.sizable->visible());
   }
 }
 
 void FixedLayout::synchronizeLayout() {
-  for(auto &child : children) {
+  for(auto& child : children) {
     Layout::append(*child.sizable);
-    child.sizable->setGeometry(child.geometry);
+    Geometry childGeometry = child.geometry;
+    if((signed)childGeometry.width < 1) childGeometry.width = 1;
+    if((signed)childGeometry.height < 1) childGeometry.height = 1;
+    child.sizable->setGeometry(childGeometry);
   }
-}
-
-bool FixedLayout::visible() {
-  if(layout()) return state.visible && layout()->visible();
-  return state.visible;
-}
-
-FixedLayout::FixedLayout() {
-  state.enabled = true;
-  state.visible = true;
 }
 
 FixedLayout::~FixedLayout() {

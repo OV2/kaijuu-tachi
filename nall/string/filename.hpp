@@ -5,10 +5,10 @@ namespace nall {
 // "/foo/bar.c" -> "/foo/"
 // "/foo/" -> "/foo/"
 // "bar.c" -> "./"
-inline string dir(string name) {
+string dir(string name) {
   for(signed i = name.length(); i >= 0; i--) {
     if(name[i] == '/' || name[i] == '\\') {
-      name[i + 1] = 0;
+      name.resize(i + 1);
       break;
     }
     if(i == 0) name = "./";
@@ -19,7 +19,7 @@ inline string dir(string name) {
 // "/foo/bar.c" -> "bar.c"
 // "/foo/" -> ""
 // "bar.c" -> "bar.c"
-inline string notdir(string name) {
+string notdir(string name) {
   for(signed i = name.length(); i >= 0; i--) {
     if(name[i] == '/' || name[i] == '\\') {
       return (const char*)name + i + 1;
@@ -31,7 +31,7 @@ inline string notdir(string name) {
 // "/foo/bar/baz" -> "/foo/bar/"
 // "/foo/bar/" -> "/foo/"
 // "/foo/bar" -> "/foo/"
-inline string parentdir(string name) {
+string parentdir(string name) {
   unsigned length = name.length(), paths = 0, prev, last;
   for(unsigned i = 0; i < length; i++) {
     if(name[i] == '/' || name[i] == '\\') {
@@ -41,16 +41,16 @@ inline string parentdir(string name) {
     }
   }
   if(last + 1 == length) last = prev;  //if name ends in slash; use previous slash
-  if(paths > 1) name[last + 1] = 0;
+  if(paths > 1) name.resize(last + 1);
   return name;
 }
 
 // "/foo/bar.c" -> "/foo/bar"
-inline string basename(string name) {
+string basename(string name) {
   for(signed i = name.length(); i >= 0; i--) {
     if(name[i] == '/' || name[i] == '\\') break;  //file has no extension
     if(name[i] == '.') {
-      name[i] = 0;
+      name.resize(i);
       break;
     }
   }
@@ -59,7 +59,7 @@ inline string basename(string name) {
 
 // "/foo/bar.c" -> "c"
 // "/foo/bar" -> ""
-inline string extension(string name) {
+string extension(string name) {
   for(signed i = name.length(); i >= 0; i--) {
     if(name[i] == '/' || name[i] == '\\') return "";  //file has no extension
     if(name[i] == '.') {
@@ -67,6 +67,16 @@ inline string extension(string name) {
     }
   }
   return name;
+}
+
+string tempname() {
+  string path = temppath();
+  srand(time(nullptr));
+  while(true) {
+    uint32_t seed = rand();
+    string filename = {path, ".temporary-", hex<8>(seed)};
+    if(access(filename, F_OK) != 0) return filename;
+  }
 }
 
 }

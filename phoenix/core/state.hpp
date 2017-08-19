@@ -1,198 +1,152 @@
-struct Timer::State {
-  bool enabled;
-  unsigned milliseconds;
+struct Application::State {
+  string name;
+  bool quit = false;
+} applicationState;
 
-  State() {
-    enabled = false;
-    milliseconds = 0;
-  }
+struct Timer::State {
+  bool enabled = false;
+  unsigned interval = 0;
+};
+
+struct BrowserWindow::State {
+  lstring filters;
+  Window* parent = nullptr;
+  string path;
+  string title;
+};
+
+struct MessageWindow::State {
+  MessageWindow::Buttons buttons = MessageWindow::Buttons::Ok;
+  Window* parent = nullptr;
+  string text;
+  string title;
 };
 
 struct Window::State {
-  bool backgroundColorOverride;
-  Color backgroundColor;
-  bool fullScreen;
-  Geometry geometry;
-  bool ignore;
-  set<Layout&> layout;
-  set<Menu&> menu;
+  bool backgroundColorOverride = false;
+  Color backgroundColor = {0, 0, 0, 255};
+  bool droppable = false;
+  bool fullScreen = false;
+  Geometry geometry = {128, 128, 256, 256};
+  group<Layout> layout;
+  group<Menu> menu;
   string menuFont;
-  bool menuVisible;
-  bool modal;
-  bool resizable;
+  bool menuVisible = false;
+  bool modal = false;
+  bool resizable = true;
   string statusFont;
   string statusText;
-  bool statusVisible;
+  bool statusVisible = false;
   string title;
-  bool visible;
-  set<Widget&> widget;
+  bool visible = false;
+  group<Widget> widget;
   string widgetFont;
-
-  State() {
-    backgroundColorOverride = false;
-    backgroundColor = {0, 0, 0, 255};
-    fullScreen = false;
-    geometry = {128, 128, 256, 256};
-    ignore = false;
-    menuVisible = false;
-    modal = false;
-    resizable = true;
-    statusVisible = false;
-    visible = false;
-  }
 };
 
 struct Action::State {
-  bool enabled;
-  Menu *menu;
-  bool visible;
-  Window *window;
-
-  State() {
-    enabled = true;
-    menu = 0;
-    visible = true;
-    window = 0;
-  }
+  bool enabled = true;
+  Menu* menu = nullptr;
+  bool visible = true;
+  Window* window = nullptr;
 };
 
 struct Menu::State {
-  set<Action&> action;
+  group<Action> action;
   nall::image image;
   string text;
-
-  State() : image(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0) {
-  }
 };
 
 struct Item::State {
   nall::image image;
   string text;
-
-  State() : image(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0) {
-  }
 };
 
 struct CheckItem::State {
-  bool checked;
+  bool checked = false;
   string text;
-
-  State() {
-    checked = false;
-  }
 };
 
 struct RadioItem::State {
-  bool checked;
-  set<RadioItem&> group;
+  bool checked = true;
+  nall::group<RadioItem> group;
   string text;
-
-  State() {
-    checked = true;
-  }
 };
 
 struct Sizable::State {
-  Layout *layout;
-  Window *window;
-
-  State() {
-    layout = 0;
-    window = 0;
-  }
+  bool enabled = true;
+  Sizable* parent = nullptr;
+  bool visible = true;
+  Window* window = nullptr;
 };
 
 struct Layout::State {
-  State() {
-  }
+  Widget* widget = nullptr;
+  unsigned widgetSelection = 0;
 };
 
 struct Widget::State {
-  bool abstract;
-  bool enabled;
+  bool abstract = false;
   string font;
-  Geometry geometry;
-  bool visible;
-
-  State() {
-    abstract = false;
-    enabled = true;
-    geometry = {0, 0, 0, 0};
-    visible = true;
-  }
+  Geometry geometry = {0, 0, 0, 0};
 };
 
 struct Button::State {
   nall::image image;
-  Orientation orientation;
+  Orientation orientation = Orientation::Horizontal;
   string text;
-
-  State() : image(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0) {
-  }
 };
 
 struct Canvas::State {
-  uint32_t *data;
-  unsigned width;
-  unsigned height;
-
-  State() {
-    data = nullptr;
-    width = 256;
-    height = 256;
-  }
+  Color color;
+  uint32_t* data = nullptr;
+  bool droppable = false;
+  vector<Color> gradient = {{}, {}, {}, {}};
+  nall::image image;
+  Canvas::Mode mode = Canvas::Mode::Color;
+  unsigned width = 0;
+  unsigned height = 0;
 };
 
-struct CheckBox::State {
-  bool checked;
+struct CheckButton::State {
+  bool checked = false;
+  nall::image image;
+  Orientation orientation = Orientation::Horizontal;
   string text;
-
-  State() {
-    checked = false;
-  }
 };
 
-struct ComboBox::State {
-  unsigned selection;
-  vector<string> text;
+struct CheckLabel::State {
+  bool checked = false;
+  string text;
+};
 
-  State() {
-    selection = 0;
-  }
+struct ComboButton::State {
+  unsigned selection = 0;
+  vector<string> text;
+};
+
+struct Console::State {
+};
+
+struct Frame::State {
+  Layout* layout = nullptr;
+  string text;
 };
 
 struct HexEdit::State {
-  unsigned columns;
-  unsigned length;
-  unsigned offset;
-  unsigned rows;
-
-  State() {
-    columns = 16;
-    length = 0;
-    offset = 0;
-    rows = 16;
-  }
+  unsigned columns = 16;
+  unsigned length = 0;
+  unsigned offset = 0;
+  unsigned rows = 16;
 };
 
-struct HorizontalScrollBar::State {
-  unsigned length;
-  unsigned position;
-
-  State() {
-    length = 101;
-    position = 0;
-  }
+struct HorizontalScroller::State {
+  unsigned length = 101;
+  unsigned position = 0;
 };
 
 struct HorizontalSlider::State {
-  unsigned length;
-  unsigned position;
-
-  State() {
-    length = 101;
-    position = 0;
-  }
+  unsigned length = 101;
+  unsigned position = 0;
 };
 
 struct Label::State {
@@ -200,79 +154,63 @@ struct Label::State {
 };
 
 struct LineEdit::State {
-  bool editable;
+  bool editable = true;
   string text;
-
-  State() {
-    editable = true;
-  }
 };
 
 struct ListView::State {
-  bool checkable;
+  bool checkable = false;
   vector<bool> checked;
   lstring headerText;
-  bool headerVisible;
+  bool headerVisible = false;
   vector<vector<nall::image>> image;
-  bool selected;
-  unsigned selection;
+  bool selected = false;
+  unsigned selection = 0;
   vector<lstring> text;
-
-  State() {
-    checkable = false;
-    headerVisible = false;
-    selected = false;
-    selection = 0;
-  }
 };
 
 struct ProgressBar::State {
-  unsigned position;
-
-  State() {
-    position = 0;
-  }
+  unsigned position = 0;
 };
 
-struct RadioBox::State {
-  bool checked;
-  set<RadioBox&> group;
+struct RadioButton::State {
+  bool checked = true;
+  nall::group<RadioButton> group;
+  nall::image image;
+  Orientation orientation = Orientation::Horizontal;
   string text;
+};
 
-  State() {
-    checked = true;
-  }
+struct RadioLabel::State {
+  bool checked = true;
+  nall::group<RadioLabel> group;
+  string text;
+};
+
+struct TabFrame::State {
+  vector<nall::image> image;
+  vector<Layout*> layout;
+  unsigned selection = 0;
+  lstring text;
 };
 
 struct TextEdit::State {
-  unsigned cursorPosition;
-  bool editable;
+  unsigned cursorPosition = 0;
+  bool editable = true;
   string text;
-  bool wordWrap;
-
-  State() {
-    cursorPosition = 0;
-    editable = true;
-    wordWrap = true;
-  }
+  bool wordWrap = true;
 };
 
-struct VerticalScrollBar::State {
-  unsigned length;
-  unsigned position;
-
-  State() {
-    length = 101;
-    position = 0;
-  }
+struct VerticalScroller::State {
+  unsigned length = 101;
+  unsigned position = 0;
 };
 
 struct VerticalSlider::State {
-  unsigned length;
-  unsigned position;
+  unsigned length = 101;
+  unsigned position = 0;
+};
 
-  State() {
-    length = 101;
-    position = 0;
-  }
+struct Viewport::State {
+  bool droppable = false;
 };

@@ -44,8 +44,17 @@ struct stream {
     return data;
   }
 
-  void read(uint8_t *data, unsigned length) const {
+  void read(uint8_t* data, unsigned length) const {
     while(length--) *data++ = read();
+  }
+
+  string text() const {
+    string buffer;
+    buffer.resize(size() + 1);
+    buffer[size()] = 0;
+    seek(0);
+    read((uint8_t*)buffer.data(), size());
+    return buffer;
   }
 
   void writel(uintmax_t data, unsigned length = 1) const {
@@ -63,17 +72,17 @@ struct stream {
     }
   }
 
-  void write(const uint8_t *data, unsigned length) const {
+  void write(const uint8_t* data, unsigned length) const {
     while(length--) write(*data++);
   }
 
   struct byte {
     operator uint8_t() const { return s.read(offset); }
     byte& operator=(uint8_t data) { s.write(offset, data); return *this; }
-    byte(const stream &s, unsigned offset) : s(s), offset(offset) {}
+    byte(const stream& s, unsigned offset) : s(s), offset(offset) {}
 
   private:
-    const stream &s;
+    const stream& s;
     const unsigned offset;
   };
 

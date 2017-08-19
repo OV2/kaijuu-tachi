@@ -1,11 +1,31 @@
-Geometry pFont::geometry(const string &description, const string &text) {
-  return pFont::geometry(pFont::create(description), text);
+namespace phoenix {
+
+string pFont::serif(unsigned size, string style) {
+  if(size == 0) size = 8;
+  if(style == "") style = "Normal";
+  return {"Serif, ", size, ", ", style};
 }
 
-QFont pFont::create(const string &description) {
+string pFont::sans(unsigned size, string style) {
+  if(size == 0) size = 8;
+  if(style == "") style = "Normal";
+  return {"Sans, ", size, ", ", style};
+}
+
+string pFont::monospace(unsigned size, string style) {
+  if(size == 0) size = 8;
+  if(style == "") style = "Normal";
+  return {"Liberation Mono, ", size, ", ", style};
+}
+
+Size pFont::size(string font, string text) {
+  return pFont::size(pFont::create(font), text);
+}
+
+QFont pFont::create(string description) {
   lstring part;
-  part.split(",", description);
-  for(auto &item : part) item.trim(" ");
+  part.split<2>(",", description);
+  for(auto& item : part) item.trim(" ");
 
   string family = "Sans";
   unsigned size = 8u;
@@ -14,8 +34,8 @@ QFont pFont::create(const string &description) {
 
   if(part[0] != "") family = part[0];
   if(part.size() >= 2) size = decimal(part[1]);
-  if(part.size() >= 3) bold = part[2].position("Bold");
-  if(part.size() >= 3) italic = part[2].position("Italic");
+  if(part.size() >= 3) bold = part[2].find("Bold");
+  if(part.size() >= 3) italic = part[2].find("Italic");
 
   QFont qtFont;
   qtFont.setFamily(family);
@@ -25,16 +45,18 @@ QFont pFont::create(const string &description) {
   return qtFont;
 }
 
-Geometry pFont::geometry(const QFont &qtFont, const string &text) {
+Size pFont::size(const QFont& qtFont, string text) {
   QFontMetrics metrics(qtFont);
 
   lstring lines;
   lines.split("\n", text);
 
   unsigned maxWidth = 0;
-  for(auto &line : lines) {
+  for(auto& line : lines) {
     maxWidth = max(maxWidth, metrics.width(line));
   }
 
-  return { 0, 0, maxWidth, metrics.height() * lines.size() };
+  return {maxWidth, metrics.height() * lines.size()};
+}
+
 }

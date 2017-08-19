@@ -1,3 +1,5 @@
+namespace phoenix {
+
 void pTimer::setEnabled(bool enabled) {
   if(enabled) {
     qtTimer->start();
@@ -6,20 +8,22 @@ void pTimer::setEnabled(bool enabled) {
   }
 }
 
-void pTimer::setInterval(unsigned milliseconds) {
-  qtTimer->setInterval(milliseconds);
+void pTimer::setInterval(unsigned interval) {
+  qtTimer->setInterval(interval);
 }
 
 void pTimer::constructor() {
   qtTimer = new QTimer;
   qtTimer->setInterval(0);
-  connect(qtTimer, SIGNAL(timeout()), SLOT(onTimeout()));
+  connect(qtTimer, SIGNAL(timeout()), SLOT(onActivate()));
 }
 
 void pTimer::destructor() {
   delete qtTimer;
 }
 
-void pTimer::onTimeout() {
-  if(timer.onTimeout) timer.onTimeout();
+void pTimer::onActivate() {
+  if(timer.onActivate) timer.onActivate();
+}
+
 }

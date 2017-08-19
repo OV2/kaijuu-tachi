@@ -1,9 +1,11 @@
-void pItem::setImage(const image &image) {
+namespace phoenix {
+
+void pItem::setImage(const image& image) {
   createBitmap();
   if(parentWindow) parentWindow->p.updateMenu();
 }
 
-void pItem::setText(const string &text) {
+void pItem::setText(string text) {
   if(parentWindow) parentWindow->p.updateMenu();
 }
 
@@ -26,4 +28,10 @@ void pItem::createBitmap() {
     nallImage.scale(GetSystemMetrics(SM_CXMENUCHECK), GetSystemMetrics(SM_CYMENUCHECK), Interpolation::Linear);
     hbitmap = CreateBitmap(nallImage);
   }
+}
+
+void pItem::onActivate() {
+  if(item.onActivate) item.onActivate();
+}
+
 }

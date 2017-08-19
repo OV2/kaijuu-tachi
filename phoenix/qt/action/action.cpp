@@ -1,3 +1,5 @@
+namespace phoenix {
+
 void pAction::setEnabled(bool enabled) {
   if(dynamic_cast<Menu*>(&action)) {
     ((Menu&)action).p.qtMenu->setEnabled(enabled);
@@ -12,7 +14,7 @@ void pAction::setEnabled(bool enabled) {
   }
 }
 
-void pAction::setFont(const string &font) {
+void pAction::setFont(string font) {
   QFont qtFont = pFont::create(font);
 
   if(dynamic_cast<Menu*>(&action)) {
@@ -46,4 +48,6 @@ void pAction::constructor() {
 }
 
 void pAction::destructor() {
+}
+
 }

@@ -1,9 +1,53 @@
-static QIcon CreateIcon(const nall::image &image, bool scale = false) {
+namespace phoenix {
+
+static QIcon CreateIcon(const nall::image& image, bool scale = false) {
   nall::image qtBuffer = image;
   qtBuffer.transform(0, 32, 255u << 24, 255u << 16, 255u << 8, 255u << 0);
   if(scale) qtBuffer.scale(16, 16, Interpolation::Linear);
   QImage qtImage(qtBuffer.data, qtBuffer.width, qtBuffer.height, QImage::Format_ARGB32);
   return QIcon(QPixmap::fromImage(qtImage));
+}
+
+static lstring DropPaths(QDropEvent* event) {
+  QList<QUrl> urls = event->mimeData()->urls();
+  if(urls.size() == 0) return {};
+
+  lstring paths;
+  for(unsigned n = 0; n < urls.size(); n++) {
+    string path = urls[n].path().toUtf8().constData();
+    if(path.empty()) continue;
+    if(directory::exists(path) && !path.endsWith("/")) path.append("/");
+    paths.append(path);
+  }
+
+  return paths;
+}
+
+static Position GetDisplacement(Sizable* sizable) {
+  Position position;
+  while(sizable->state.parent) {
+    Position displacement = sizable->state.parent->p.displacement();
+    position.x += displacement.x;
+    position.y += displacement.y;
+    sizable = sizable->state.parent;
+  }
+  return position;
+}
+
+static Layout* GetParentWidgetLayout(Sizable* sizable) {
+  while(sizable) {
+    if(sizable->state.parent && dynamic_cast<TabFrame*>(sizable->state.parent)) return (Layout*)sizable;
+    sizable = sizable->state.parent;
+  }
+  return nullptr;
+}
+
+static Widget* GetParentWidget(Sizable* sizable) {
+  while(sizable) {
+    if(sizable->state.parent && dynamic_cast<TabFrame*>(sizable->state.parent)) return (Widget*)sizable->state.parent;
+    sizable = sizable->state.parent;
+  }
+  return nullptr;
 }
 
 static Keyboard::Keycode Keysym(int keysym) {
@@ -187,4 +231,6 @@ static Keyboard::Keycode Keysym(int keysym) {
   case XK_KP_Delete: return Keyboard::Keycode::KeypadDelete;
   }
   return Keyboard::Keycode::None;
+}
+
 }

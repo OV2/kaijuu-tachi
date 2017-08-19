@@ -1,45 +1,39 @@
-Window& pWindow::none() {
-  static Window *window = nullptr;
-  if(window == nullptr) window = new Window;
-  return *window;
-}
+namespace phoenix {
 
-void pWindow::append(Layout &layout) {
+void pWindow::append(Layout& layout) {
   Geometry geometry = window.state.geometry;
   geometry.x = geometry.y = 0;
   layout.setGeometry(geometry);
 }
 
-void pWindow::append(Menu &menu) {
+void pWindow::append(Menu& menu) {
   if(window.state.menuFont != "") menu.p.setFont(window.state.menuFont);
-  else menu.p.setFont("Sans, 8");
+  else menu.p.setFont(Font::sans(8));
   qtMenu->addMenu(menu.p.qtMenu);
 }
 
-void pWindow::append(Widget &widget) {
-  if(widget.state.font == "") {
-    if(window.state.widgetFont != "") widget.p.setFont(window.state.widgetFont);
-    else widget.p.setFont("Sans, 8");
+void pWindow::append(Widget& widget) {
+  if(widget.font().empty() && !window.state.widgetFont.empty()) {
+    widget.setFont(window.state.widgetFont);
   }
-  widget.p.qtWidget->setParent(qtContainer);
+  if(widget.font().empty()) widget.p.setFont(Font::sans(8));
+  if(GetParentWidget(&widget)) {
+    widget.p.qtWidget->setParent(GetParentWidget(&widget)->p.container(widget));
+  } else {
+    widget.p.qtWidget->setParent(qtContainer);
+  }
   widget.setVisible(widget.visible());
 }
 
-Color pWindow::backgroundColor() {
-  if(window.state.backgroundColorOverride) return window.state.backgroundColor;
-  QColor color = qtWindow->palette().color(QPalette::ColorRole::Window);
-  return { (uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue(), (uint8_t)color.alpha() };
-}
-
 Geometry pWindow::frameMargin() {
-  unsigned menuHeight = window.state.menuVisible ? settings->menuGeometryHeight : 0;
-  unsigned statusHeight = window.state.statusVisible ? settings->statusGeometryHeight : 0;
-  if(window.state.fullScreen) return { 0, menuHeight, 0, menuHeight + statusHeight };
+  unsigned menuHeight = window.state.menuVisible ? settings->geometry.menuHeight : 0;
+  unsigned statusHeight = window.state.statusVisible ? settings->geometry.statusHeight : 0;
+  if(window.state.fullScreen) return {0, menuHeight, 0, menuHeight + statusHeight};
   return {
-    settings->frameGeometryX,
-    settings->frameGeometryY + menuHeight,
-    settings->frameGeometryWidth,
-    settings->frameGeometryHeight + menuHeight + statusHeight
+    settings->geometry.frameX,
+    settings->geometry.frameY + menuHeight,
+    settings->geometry.frameWidth,
+    settings->geometry.frameHeight + menuHeight + statusHeight
   };
 }
 
@@ -51,32 +45,38 @@ Geometry pWindow::geometry() {
   if(window.state.fullScreen) {
     unsigned menuHeight = window.state.menuVisible ? qtMenu->height() : 0;
     unsigned statusHeight = window.state.statusVisible ? qtStatus->height() : 0;
-    return { 0, menuHeight, Desktop::size().width, Desktop::size().height - menuHeight - statusHeight };
+    QRect geometry = qtWindow->geometry();  //frameGeometry() includes frame even though it's not visible in fullscreen mode
+    return {geometry.x(), geometry.y() + menuHeight, geometry.width(), geometry.height() - menuHeight - statusHeight};
   }
   return window.state.geometry;
 }
 
-void pWindow::remove(Layout &layout) {
+void pWindow::remove(Layout& layout) {
 }
 
-void pWindow::remove(Menu &menu) {
+void pWindow::remove(Menu& menu) {
   //QMenuBar::removeMenu() does not exist
   qtMenu->clear();
-  for(auto &menu : window.state.menu) append(menu);
+  for(auto& menu : window.state.menu) append(menu);
 }
 
-void pWindow::remove(Widget &widget) {
-  //bugfix: orphan() destroys and recreates widgets (to disassociate them from their parent);
+void pWindow::remove(Widget& widget) {
+  //orphan() destroys and recreates widgets (to disassociate them from their parent);
   //attempting to create widget again after QApplication::quit() crashes libQtGui
   if(qtApplication) widget.p.orphan();
 }
 
-void pWindow::setBackgroundColor(const Color &color) {
+void pWindow::setBackgroundColor(Color color) {
   QPalette palette;
-  palette.setColor(QPalette::Window, QColor(color.red, color.green, color.blue, color.alpha));
+  palette.setColor(QPalette::Background, QColor(color.red, color.green, color.blue /*, color.alpha */));
   qtContainer->setPalette(palette);
   qtContainer->setAutoFillBackground(true);
-  qtWindow->setAttribute(Qt::WA_TranslucentBackground, color.alpha != 255);
+  //translucency results are very unpleasant without a compositor; so disable for now
+  //qtWindow->setAttribute(Qt::WA_TranslucentBackground, color.alpha != 255);
+}
+
+void pWindow::setDroppable(bool droppable) {
+  qtWindow->setAcceptDrops(droppable);
 }
 
 void pWindow::setFocused() {
@@ -96,30 +96,32 @@ void pWindow::setFullScreen(bool fullScreen) {
   }
 }
 
-void pWindow::setGeometry(const Geometry &geometry_) {
+void pWindow::setGeometry(Geometry geometry) {
   locked = true;
-  OS::processEvents();
+  Application::processEvents();
   QApplication::syncX();
-  Geometry geometry = geometry_, margin = frameMargin();
+  Geometry margin = frameMargin();
 
   setResizable(window.state.resizable);
   qtWindow->move(geometry.x - frameMargin().x, geometry.y - frameMargin().y);
   //qtWindow->adjustSize() fails if larger than 2/3rds screen size
   qtWindow->resize(qtWindow->sizeHint());
-  qtWindow->setMinimumSize(1, 1);
-  qtContainer->setMinimumSize(1, 1);
+  if(window.state.resizable) {
+    //required to allow shrinking window from default size
+    qtWindow->setMinimumSize(1, 1);
+    qtContainer->setMinimumSize(1, 1);
+  }
 
-  for(auto &layout : window.state.layout) {
-    geometry = geometry_;
+  for(auto& layout : window.state.layout) {
     geometry.x = geometry.y = 0;
     layout.setGeometry(geometry);
   }
   locked = false;
 }
 
-void pWindow::setMenuFont(const string &font) {
+void pWindow::setMenuFont(string font) {
   qtMenu->setFont(pFont::create(font));
-  for(auto &item : window.state.menu) item.p.setFont(font);
+  for(auto& item : window.state.menu) item.p.setFont(font);
 }
 
 void pWindow::setMenuVisible(bool visible) {
@@ -128,7 +130,17 @@ void pWindow::setMenuVisible(bool visible) {
 }
 
 void pWindow::setModal(bool modal) {
-  qtWindow->setWindowModality(modal ? Qt::ApplicationModal : Qt::NonModal);
+  if(modal == true) {
+    //windowModality can only be enabled while window is invisible
+    setVisible(false);
+    qtWindow->setWindowModality(Qt::ApplicationModal);
+    setVisible(true);
+    while(window.state.modal) {
+      Application::processEvents();
+      usleep(20 * 1000);
+    }
+    qtWindow->setWindowModality(Qt::NonModal);
+  }
 }
 
 void pWindow::setResizable(bool resizable) {
@@ -142,11 +154,11 @@ void pWindow::setResizable(bool resizable) {
   qtStatus->setSizeGripEnabled(resizable);
 }
 
-void pWindow::setStatusFont(const string &font) {
+void pWindow::setStatusFont(string font) {
   qtStatus->setFont(pFont::create(font));
 }
 
-void pWindow::setStatusText(const string &text) {
+void pWindow::setStatusText(string text) {
   qtStatus->showMessage(QString::fromUtf8(text), 0);
 }
 
@@ -155,7 +167,7 @@ void pWindow::setStatusVisible(bool visible) {
   setGeometry(window.state.geometry);
 }
 
-void pWindow::setTitle(const string &text) {
+void pWindow::setTitle(string text) {
   qtWindow->setWindowTitle(QString::fromUtf8(text));
 }
 
@@ -169,15 +181,21 @@ void pWindow::setVisible(bool visible) {
   locked = false;
 }
 
-void pWindow::setWidgetFont(const string &font) {
-  for(auto &item : window.state.widget) {
-    if(!item.state.font) item.setFont(font);
-  }
+void pWindow::setWidgetFont(string font) {
 }
 
 void pWindow::constructor() {
   qtWindow = new QtWindow(*this);
   qtWindow->setWindowTitle(" ");
+
+  //if program was given a name, try and set the window taskbar icon to a matching pixmap image
+  if(applicationState.name.empty() == false) {
+    if(file::exists({"/usr/share/pixmaps/", applicationState.name, ".png"})) {
+      qtWindow->setWindowIcon(QIcon(string{"/usr/share/pixmaps/", applicationState.name, ".png"}));
+    } else if(file::exists({"/usr/local/share/pixmaps/", applicationState.name, ".png"})) {
+      qtWindow->setWindowIcon(QIcon(string{"/usr/local/share/pixmaps/", applicationState.name, ".png"}));
+    }
+  }
 
   qtLayout = new QVBoxLayout(qtWindow);
   qtLayout->setMargin(0);
@@ -199,8 +217,11 @@ void pWindow::constructor() {
   qtLayout->addWidget(qtStatus);
 
   setGeometry(window.state.geometry);
-  setMenuFont("Sans, 8");
-  setStatusFont("Sans, 8");
+  setMenuFont(Font::sans(8));
+  setStatusFont(Font::sans(8));
+
+  QColor color = qtWindow->palette().color(QPalette::ColorRole::Window);
+  window.state.backgroundColor = Color((uint8_t)color.red(), (uint8_t)color.green(), (uint8_t)color.blue(), (uint8_t)color.alpha());
 }
 
 void pWindow::destructor() {
@@ -212,36 +233,36 @@ void pWindow::destructor() {
 }
 
 void pWindow::updateFrameGeometry() {
-  pOS::syncX();
+  pApplication::syncX();
   QRect border = qtWindow->frameGeometry();
   QRect client = qtWindow->geometry();
 
-  settings->frameGeometryX = client.x() - border.x();
-  settings->frameGeometryY = client.y() - border.y();
-  settings->frameGeometryWidth = border.width() - client.width();
-  settings->frameGeometryHeight = border.height() - client.height();
+  settings->geometry.frameX = client.x() - border.x();
+  settings->geometry.frameY = client.y() - border.y();
+  settings->geometry.frameWidth = border.width() - client.width();
+  settings->geometry.frameHeight = border.height() - client.height();
 
   if(window.state.menuVisible) {
-    pOS::syncX();
-    settings->menuGeometryHeight = qtMenu->height();
+    pApplication::syncX();
+    settings->geometry.menuHeight = qtMenu->height();
   }
 
   if(window.state.statusVisible) {
-    pOS::syncX();
-    settings->statusGeometryHeight = qtStatus->height();
+    pApplication::syncX();
+    settings->geometry.statusHeight = qtStatus->height();
   }
 
   settings->save();
 }
 
-void pWindow::QtWindow::closeEvent(QCloseEvent *event) {
-  self.window.state.ignore = false;
+void pWindow::QtWindow::closeEvent(QCloseEvent* event) {
   event->ignore();
   if(self.window.onClose) self.window.onClose();
-  if(self.window.state.ignore == false) hide();
+  else self.window.setVisible(false);
+  if(self.window.state.modal && !self.window.visible()) self.window.setModal(false);
 }
 
-void pWindow::QtWindow::moveEvent(QMoveEvent *event) {
+void pWindow::QtWindow::moveEvent(QMoveEvent* event) {
   if(self.locked == false && self.window.state.fullScreen == false && self.qtWindow->isVisible() == true) {
     self.window.state.geometry.x += event->pos().x() - event->oldPos().x();
     self.window.state.geometry.y += event->pos().y() - event->oldPos().y();
@@ -252,12 +273,24 @@ void pWindow::QtWindow::moveEvent(QMoveEvent *event) {
   }
 }
 
-void pWindow::QtWindow::keyPressEvent(QKeyEvent *event) {
+void pWindow::QtWindow::dragEnterEvent(QDragEnterEvent* event) {
+  if(event->mimeData()->hasUrls()) {
+    event->acceptProposedAction();
+  }
+}
+
+void pWindow::QtWindow::dropEvent(QDropEvent* event) {
+  lstring paths = DropPaths(event);
+  if(paths.empty()) return;
+  if(self.window.onDrop) self.window.onDrop(paths);
+}
+
+void pWindow::QtWindow::keyPressEvent(QKeyEvent* event) {
   Keyboard::Keycode sym = Keysym(event->nativeVirtualKey());
   if(sym != Keyboard::Keycode::None && self.window.onKeyPress) self.window.onKeyPress(sym);
 }
 
-void pWindow::QtWindow::keyReleaseEvent(QKeyEvent *event) {
+void pWindow::QtWindow::keyReleaseEvent(QKeyEvent* event) {
   Keyboard::Keycode sym = Keysym(event->nativeVirtualKey());
   if(sym != Keyboard::Keycode::None && self.window.onKeyRelease) self.window.onKeyRelease(sym);
 }
@@ -268,7 +301,7 @@ void pWindow::QtWindow::resizeEvent(QResizeEvent*) {
     self.window.state.geometry.height = self.qtContainer->geometry().height();
   }
 
-  for(auto &layout : self.window.state.layout) {
+  for(auto& layout : self.window.state.layout) {
     Geometry geometry = self.geometry();
     geometry.x = geometry.y = 0;
     layout.setGeometry(geometry);
@@ -282,7 +315,9 @@ void pWindow::QtWindow::resizeEvent(QResizeEvent*) {
 QSize pWindow::QtWindow::sizeHint() const {
   unsigned width = self.window.state.geometry.width;
   unsigned height = self.window.state.geometry.height;
-  if(self.window.state.menuVisible) height += settings->menuGeometryHeight;
-  if(self.window.state.statusVisible) height += settings->statusGeometryHeight;
+  if(self.window.state.menuVisible) height += settings->geometry.menuHeight;
+  if(self.window.state.statusVisible) height += settings->geometry.statusHeight;
   return QSize(width, height);
+}
+
 }

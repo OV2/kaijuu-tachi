@@ -1,6 +1,7 @@
 #ifdef NALL_DSP_INTERNAL_HPP
 
 #include <math.h>
+#include <vector>
 #include <nall/stdint.hpp>
 
 namespace nall {
@@ -11,13 +12,13 @@ namespace nall {
 struct DSP;
 
 struct Resampler {
-  DSP &dsp;
+  DSP& dsp;
   real frequency;
 
   virtual void setFrequency() = 0;
   virtual void clear() = 0;
   virtual void sample() = 0;
-  Resampler(DSP &dsp) : dsp(dsp) {}
+  Resampler(DSP& dsp) : dsp(dsp) {}
 };
 
 struct DSP {
@@ -69,7 +70,7 @@ protected:
     real intensityInverse;
   } settings;
 
-  Resampler *resampler;
+  Resampler* resampler = nullptr;
   inline void write(real channel[]);
 
   #include "buffer.hpp"

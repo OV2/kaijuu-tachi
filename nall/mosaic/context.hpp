@@ -36,9 +36,9 @@ struct context {
   unsigned paddingColor;
   vector<unsigned> palette;
 
-  inline unsigned objectWidth() const { return blockWidth * tileWidth * mosaicWidth + paddingWidth; }
-  inline unsigned objectHeight() const { return blockHeight * tileHeight * mosaicHeight + paddingHeight; }
-  inline unsigned objectSize() const {
+  unsigned objectWidth() const { return blockWidth * tileWidth * mosaicWidth + paddingWidth; }
+  unsigned objectHeight() const { return blockHeight * tileHeight * mosaicHeight + paddingHeight; }
+  unsigned objectSize() const {
     unsigned size = blockStride * tileWidth * tileHeight * mosaicWidth * mosaicHeight
                   + blockOffset * tileHeight * mosaicWidth * mosaicHeight
                   + tileStride * mosaicWidth * mosaicHeight
@@ -46,25 +46,24 @@ struct context {
     return max(1u, size);
   }
 
-  inline unsigned eval(const string &expression) {
-    intmax_t result;
-    if(fixedpoint::eval(expression, result) == false) return 0u;
-    return result;
+  unsigned eval(const string& expression) {
+    if(auto result = Eval::integer(expression)) return result();
+    return 0u;
   }
 
-  inline void eval(vector<unsigned> &buffer, const string &expression_) {
+  void eval(vector<unsigned>& buffer, const string& expression_) {
     string expression = expression_;
     bool function = false;
-    for(auto &c : expression) {
+    for(auto& c : expression) {
       if(c == '(') function = true;
       if(c == ')') function = false;
       if(c == ',' && function == true) c = ';';
     }
 
     lstring list = expression.split(",");
-    for(auto &item : list) {
+    for(auto& item : list) {
       item.trim();
-      if(item.wildcard("f(?*) ?*")) {
+      if(item.match("f(?*) ?*")) {
         item.ltrim<1>("f(");
         lstring part = item.split<1>(") ");
         lstring args = part[0].split<3>(";");
@@ -78,31 +77,31 @@ struct context {
 
         for(unsigned n = 0; n < length; n++) {
           string fn = part[1];
-          fn.replace("n", decimal(n));
-          fn.replace("o", decimal(offset));
-          fn.replace("p", decimal(buffer.size()));
+          fn.replace("n", string{n});
+          fn.replace("o", string{offset});
+          fn.replace("p", string{buffer.size()});
           buffer.resize(offset + 1);
           buffer[offset] = eval(fn);
           offset += stride;
         }
-      } else if(item.wildcard("base64*")) {
+      } else if(item.match("base64*")) {
         unsigned offset = 0;
         item.ltrim<1>("base64");
-        if(item.wildcard("(?*) *")) {
+        if(item.match("(?*) *")) {
           item.ltrim<1>("(");
           lstring part = item.split<1>(") ");
           offset = eval(part[0]);
           item = part(1, "");
         }
         item.trim();
-        for(auto &c : item) {
+        for(auto& c : item) {
           if(c >= 'A' && c <= 'Z') buffer.append(offset + c - 'A' +  0);
           if(c >= 'a' && c <= 'z') buffer.append(offset + c - 'a' + 26);
           if(c >= '0' && c <= '9') buffer.append(offset + c - '0' + 52);
           if(c == '-') buffer.append(offset + 62);
           if(c == '_') buffer.append(offset + 63);
         }
-      } else if(item.wildcard("file *")) {
+      } else if(item.match("file *")) {
         item.ltrim<1>("file ");
         item.trim();
         //...
@@ -112,11 +111,11 @@ struct context {
     }
   }
 
-  inline void parse(const string &data) {
+  void parse(const string& data) {
     reset();
 
     lstring lines = data.split("\n");
-    for(auto &line : lines) {
+    for(auto& line : lines) {
       lstring part = line.split<1>(":");
       if(part.size() != 2) continue;
       part[0].trim();
@@ -158,14 +157,14 @@ struct context {
     sanitize();
   }
 
-  inline bool load(const string &filename) {
-    string filedata;
-    if(filedata.readfile(filename) == false) return false;
+  bool load(const string& filename) {
+    string filedata = string::read(filename);
+    if(filedata.empty()) return false;
     parse(filedata);
     return true;
   }
 
-  inline void sanitize() {
+  void sanitize() {
     if(depth < 1) depth = 1;
     if(depth > 24) depth = 24;
 
@@ -177,9 +176,13 @@ struct context {
 
     if(mosaicWidth < 1) mosaicWidth = 1;
     if(mosaicHeight < 1) mosaicHeight = 1;
+
+    //set alpha to full opacity
+    paddingColor |= 255u << 24;
+    for(auto& color : palette) color |= 255u << 24;
   }
 
-  inline void reset() {
+  void reset() {
     offset = 0;
     width = 0;
     height = 0;
@@ -209,11 +212,11 @@ struct context {
 
     paddingWidth = 0;
     paddingHeight = 0;
-    paddingColor = 0x000000;
+    paddingColor = 0;
     palette.reset();
   }
 
-  inline context() {
+  context() {
     reset();
   }
 };

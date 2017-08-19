@@ -23,8 +23,9 @@
     </style>
   </head>
   <body>
-    <h1>kaijuu v05</h1>
-    Author: byuu<br>
+    <h1>kaijuu v06</h1>
+    Original Author: byuu<br>
+    Current Author: hex_usr<br>
     License: ISC<br>
     <br>
 
@@ -47,12 +48,15 @@
     of this from an easy-to-use GUI.</p>
 
     <h3>Installation</h3>
-    <p>kaijuu comes in 32-bit and 64-bit flavors, you will need to use
-    the one for your operating system. If you are unsure, try running
-    kaijuu32.exe. It will tell you if you need to use the 64-bit
-    version.</p>
+    <p>If you wish to compile kaijuu, you will need to install
+    <a href="http://tdm-gcc.tdragon.net/">TDM-GCC</a>. Visual Studio does
+    not support some of the features used in kaijuu's source code.</p>
 
-    <p>Now place the appropriate kaijuu EXE and DLL files into a folder
+    <p>kaijuu has been tested only on 64-bit Windows. MinGW support
+    for 32-bit Windows is somewhat poor, so it will take some effort
+    to prepare a 32-bit MinGW installation to compile kaijuu.</p>
+
+    <p>Place the appropriate kaijuu EXE and DLL files into a folder
     where you intend to keep them. The DLL cannot be moved after
     installation, otherwise Explorer will not be able to locate the
     shell extension. C:\Program Files\kaijuu would be a recommended
@@ -93,9 +97,8 @@
     rule, and <i>Reset</i> can delete all rules.</p>
 
     <h3>Rules</h3>
-    <p>You can have as many rules as you like. You will see every
-    matched rule in the context menu when you right-click on files or
-    folders.</p>
+    <p>You can have a maximum of 1000 rules. You will see every matched
+    rule in the context menu when you right-click on files or folders.</p>
 
     <p><i>Name</i> is the string that will show up in the context menu.
     It would be wise to name the rule something like "Open with X" or

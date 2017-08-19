@@ -1,19 +1,19 @@
 #include "interface.hpp"
-Application *application = nullptr;
-RuleEditor *ruleEditor = nullptr;
+Program* program = nullptr;
+RuleEditor* ruleEditor = nullptr;
 
 #include "resource/resource.hpp"
 #include "resource/resource.cpp"
 
-Application::Application(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v05");
+Program::Program(const string &pathname) : pathname(pathname) {
+  setTitle("kaijuu v06");
   setFrameGeometry({64, 64, 725, 480});
 
   layout.setMargin(5);
   statusLabel.setFont("Tahoma, 8, Bold");
   uninstallButton.setText("Uninstall");
   installButton.setText("Install");
-  settingList.setHeaderText("Name", "Default", "Match", "Pattern", "Command");
+  settingList.setHeaderText({"Name", "Default", "Match", "Pattern", "Command"});
   settingList.setHeaderVisible();
   appendButton.setText("Append");
   modifyButton.setText("Modify");
@@ -42,26 +42,25 @@ Application::Application(const string &pathname) : pathname(pathname) {
       controlLayout.append(canvas, {80, 88});
 
   canvas.setImage({resource::icon, sizeof resource::icon});
-  canvas.update();
 
-  onClose = &OS::quit;
-  installButton.onActivate = {&Application::install, this};
-  uninstallButton.onActivate = {&Application::uninstall, this};
-  settingList.onActivate = {&Application::modifyAction, this};
-  settingList.onChange = {&Application::synchronize, this};
-  appendButton.onActivate = {&Application::appendAction, this};
-  modifyButton.onActivate = {&Application::modifyAction, this};
-  moveUpButton.onActivate = {&Application::moveUpAction, this};
-  moveDownButton.onActivate = {&Application::moveDownAction, this};
-  removeButton.onActivate = {&Application::removeAction, this};
-  resetButton.onActivate = {&Application::resetAction, this};
+  onClose = &Application::quit;
+  installButton.onActivate = {&Program::install, this};
+  uninstallButton.onActivate = {&Program::uninstall, this};
+  settingList.onActivate = {&Program::modifyAction, this};
+  settingList.onChange = {&Program::synchronize, this};
+  appendButton.onActivate = {&Program::appendAction, this};
+  modifyButton.onActivate = {&Program::modifyAction, this};
+  moveUpButton.onActivate = {&Program::moveUpAction, this};
+  moveDownButton.onActivate = {&Program::moveDownAction, this};
+  removeButton.onActivate = {&Program::removeAction, this};
+  resetButton.onActivate = {&Program::resetAction, this};
   helpButton.onActivate = [&] { nall::invoke("kaijuu.html"); };
   refresh();
   synchronize();
   setVisible();
 }
 
-void Application::synchronize() {
+void Program::synchronize() {
   if(registry::read({"HKLM/Software/Microsoft/Windows/CurrentVersion/Shell Extensions/Approved/", classID}) == classDescription) {
     statusLabel.setText("Extension status: installed");
     installButton.setEnabled(false);
@@ -78,7 +77,7 @@ void Application::synchronize() {
   resetButton.setEnabled(settings.rules.size() > 0);
 }
 
-void Application::refresh() {
+void Program::refresh() {
   settings.load();
   settingList.reset();
   for(auto &rule : settings.rules) {
@@ -86,34 +85,34 @@ void Application::refresh() {
     if(rule.matchFiles && rule.matchFolders) match = "Everything";
     else if(rule.matchFiles) match = "Files";
     else if(rule.matchFolders) match = "Folders";
-    settingList.append(rule.name, rule.defaultAction ? "Yes" : "No", match, rule.pattern, rule.command);
+    settingList.append({rule.name, rule.defaultAction ? "Yes" : "No", match, rule.pattern, rule.command});
   }
   settingList.autoSizeColumns();
 }
 
-void Application::install() {
+void Program::install() {
   string command = {"regsvr32 \"", pathname, classDriver, "\""};
   _wsystem(utf16_t(command));
   synchronize();
 }
 
-void Application::uninstall() {
+void Program::uninstall() {
   string command = {"regsvr32 /u \"", pathname, classDriver, "\""};
   _wsystem(utf16_t(command));
   synchronize();
 }
 
-void Application::appendAction() {
+void Program::appendAction() {
   ruleEditor->show();
 }
 
-void Application::modifyAction() {
+void Program::modifyAction() {
   if(settingList.selected() == false) return;
   unsigned selection = settingList.selection();
   ruleEditor->show(selection);
 }
 
-void Application::moveUpAction() {
+void Program::moveUpAction() {
   if(settingList.selected() == false) return;
   if(settingList.selection() == 0) return;
   unsigned selection = settingList.selection();
@@ -126,7 +125,7 @@ void Application::moveUpAction() {
   synchronize();
 }
 
-void Application::moveDownAction() {
+void Program::moveDownAction() {
   if(settingList.selected() == false) return;
   if(settingList.selection() >= settings.rules.size() - 1) return;
   unsigned selection = settingList.selection();
@@ -139,7 +138,7 @@ void Application::moveDownAction() {
   synchronize();
 }
 
-void Application::removeAction() {
+void Program::removeAction() {
   if(settingList.selected() == false) return;
   unsigned selection = settingList.selection();
   settings.rules.remove(selection);
@@ -148,9 +147,9 @@ void Application::removeAction() {
   synchronize();
 }
 
-void Application::resetAction() {
-  if(MessageWindow::question(*this, "Warning: this will permanently remove all rules! Are you sure you want to do this?")
-  == MessageWindow::Response::No) return;
+void Program::resetAction() {
+  if(MessageWindow().setParent(*this).setText("Warning: this will permanently remove all rules! Are you sure you want to do this?")
+  .question() == MessageWindow::Response::No) return;
   settings.rules.reset();
   settings.save();
   refresh();
@@ -171,11 +170,11 @@ RuleEditor::RuleEditor() : index(-1) {
   foldersAction.setText("Match Folders");
   assignButton.setText("Assign");
 
-  Font font("Tahoma, 8");
+  string font = Font::sans(8);
   unsigned length = 0;
-  length = max(length, font.geometry("Name:").width);
-  length = max(length, font.geometry("Pattern:").width);
-  length = max(length, font.geometry("Command:").width);
+  length = max(length, Font::size(font, "Name:").width);
+  length = max(length, Font::size(font, "Pattern:").width);
+  length = max(length, Font::size(font, "Command:").width);
 
   append(layout);
   layout.append(nameLayout, {~0, 0}, 5);
@@ -196,12 +195,12 @@ RuleEditor::RuleEditor() : index(-1) {
     controlLayout.append(assignButton, {80, 0});
 
   Geometry geometry = Window::geometry();
-  geometry.height = layout.minimumGeometry().height;
+  geometry.height = layout.minimumSize().height;
   setGeometry(geometry);
 
-  onClose = [&] {
-    modal = false;
-  };
+  //onClose = [&] {
+  //  setModal(modal = false);
+  //};
 
   nameValue.onChange =
   patternValue.onChange =
@@ -209,7 +208,10 @@ RuleEditor::RuleEditor() : index(-1) {
   {&RuleEditor::synchronize, this};
 
   commandSelect.onActivate = [&] {
-    string pathname = DialogWindow::fileOpen(*this, application->pathname, "Programs (*.exe)", "All Files (*)");
+    string pathname = BrowserWindow().setParent(*this)
+    .setPath(program->pathname)
+    .setFilters({"Programs (*.exe)", "All Files (*)"})
+    .open();
     if(pathname.empty() == false) {
       pathname.transform("/", "\\");
       commandValue.setText({"\"", pathname, "\" {file}"});
@@ -235,10 +237,10 @@ RuleEditor::RuleEditor() : index(-1) {
       settings.rules(index) = rule;
     }
     settings.save();
-    application->refresh();
-    application->synchronize();
+    program->refresh();
+    program->synchronize();
     setVisible(false);
-    modal = false;
+    setModal(false);//modal = false);
   };
 }
 
@@ -263,15 +265,14 @@ void RuleEditor::show(signed ruleID) {
   foldersAction.setChecked(rule.matchFolders);
   synchronize();
   setVisible();
-  setFocused();
+  //setFocused();
   nameValue.setFocused();
 
-  setModal(modal = true);
-  while(modal == true) {
-    OS::processEvents();
+  setModal();//modal = true);
+  while(visible()) {
+    Application::processEvents();
   }
-  setModal(false);
-  application->setFocused();
+  //program->setFocused();
 }
 
 typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS)(HANDLE, PBOOL);
@@ -287,7 +288,7 @@ bool isWow64() {
 
 int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
   if(isWow64()) {
-    MessageWindow::critical(Window::none(), "Error: you must run kaijuu64.exe on 64-bit Windows.");
+    MessageWindow().setText("Error: you must run kaijuu64.exe on 64-bit Windows.").error();
     return 0;
   }
 
@@ -298,10 +299,9 @@ int CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) {
   pathname.transform("\\", "/");
   pathname = dir(pathname);
 
-  application = new Application(pathname);
+  program = new Program(pathname);
   ruleEditor = new RuleEditor;
-  application->setFocused();
-  OS::main();
+  Application::run();
 
   return 0;
 }

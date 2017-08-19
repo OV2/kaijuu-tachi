@@ -10,50 +10,66 @@
 [space] :=
 [space] +=
 
-#####
 # platform detection
-#####
-
 ifeq ($(platform),)
-  uname := $(shell uname -a)
+  uname := $(shell uname -s)
   ifeq ($(uname),)
-    platform := win
+    platform := windows
     delete = del $(subst /,\,$1)
   else ifneq ($(findstring Windows,$(uname)),)
-    platform := win
+    platform := windows
     delete = del $(subst /,\,$1)
   else ifneq ($(findstring CYGWIN,$(uname)),)
-    platform := win
+    platform := windows
     delete = del $(subst /,\,$1)
   else ifneq ($(findstring Darwin,$(uname)),)
-    platform := osx
+    platform := macosx
+    delete = rm -f $1
+  else ifneq ($(findstring BSD,$(uname)),)
+    platform := bsd
     delete = rm -f $1
   else
-    platform := x
+    platform := linux
     delete = rm -f $1
   endif
 endif
 
+# compiler detection
 ifeq ($(compiler),)
-  ifeq ($(platform),win)
-    compiler := gcc
-  else ifeq ($(platform),osx)
-    compiler := gcc-mp-4.7
+  ifeq ($(platform),windows)
+    compiler := g++
+    flags :=
+    link :=
+  else ifeq ($(platform),macosx)
+    compiler := clang++
+    flags := -w -stdlib=libc++
+    link := -lc++ -lobjc
+  else ifeq ($(platform),bsd)
+    compiler := clang++
+    flags := -w -I/usr/local/include
   else
-    compiler := gcc-4.7
+    compiler := g++
+    flags :=
+    link :=
   endif
+
+  cflags := -x c -std=c99
+  objcflags := -x objective-c -std=c99
+  cppflags := -x c++ -std=c++11
+  objcppflags := -x objective-c++ -std=c++11
 endif
 
-c := $(compiler) -std=gnu99
-cpp := $(subst cc,++,$(compiler)) -std=gnu++0x
+# cross-compilation support
+ifeq ($(arch),x86)
+  flags := -m32 $(flags)
+  link := -m32 $(link)
+endif
 
 ifeq ($(prefix),)
   prefix := /usr/local
 endif
 
-#####
 # function rwildcard(directory, pattern)
-#####
 rwildcard = \
   $(strip \
     $(filter $(if $2,$2,%), \
@@ -65,9 +81,7 @@ rwildcard = \
     ) \
   )
 
-#####
 # function strtr(source, from, to)
-#####
 strtr = \
   $(eval __temp := $1) \
   $(strip \
@@ -80,19 +94,13 @@ strtr = \
     $(__temp) \
   )
 
-#####
 # function strupper(source)
-#####
 strupper = $(call strtr,$1,$([a-z]),$([A-Z]))
 
-#####
 # function strlower(source)
-#####
 strlower = $(call strtr,$1,$([A-Z]),$([a-z]))
 
-#####
 # function strlen(source)
-#####
 strlen = \
   $(eval __temp := $(subst $([space]),_,$1)) \
   $(words \
@@ -107,12 +115,8 @@ strlen = \
     ) \
   )
 
-#####
 # function streq(source)
-#####
 streq = $(if $(filter-out xx,x$(subst $1,,$2)$(subst $2,,$1)x),,1)
 
-#####
 # function strne(source)
-#####
 strne = $(if $(filter-out xx,x$(subst $1,,$2)$(subst $2,,$1)x),1,)

@@ -53,7 +53,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataOb
       DragQueryFileW((HDROP)medium.hGlobal, i, filename, PATH_MAX);
       string name = (const char*)utf8_t(filename);
       name.transform("/", "\\");
-      if(name.endswith("\\")) name.rtrim<1>("\\");
+      if(name.endsWith("\\")) name.rtrim<1>("\\");
       fileList.append(name);
     }
     GlobalUnlock(medium.hGlobal);
@@ -157,7 +157,7 @@ vector<unsigned> CShellExt::matchedRules() {
       lstring patternList = rule.pattern.split(";");
       bool found = false;
       for(auto &pattern : patternList) {
-        if(name.wildcard(pattern)) {
+        if(name.match(pattern)) {
           found = true;
           break;
         }

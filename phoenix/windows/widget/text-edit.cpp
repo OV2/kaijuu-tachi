@@ -1,3 +1,5 @@
+namespace phoenix {
+
 void pTextEdit::setCursorPosition(unsigned position) {
   if(position == ~0) position >>= 1;  //Edit_SetSel takes signed type
   Edit_SetSel(hwnd, position, position);
@@ -8,7 +10,7 @@ void pTextEdit::setEditable(bool editable) {
   SendMessage(hwnd, EM_SETREADONLY, editable == false, (LPARAM)0);
 }
 
-void pTextEdit::setText(const string &text) {
+void pTextEdit::setText(string text) {
   locked = true;
   string output = text;
   output.replace("\r", "");
@@ -37,7 +39,7 @@ void pTextEdit::constructor() {
   hwnd = CreateWindowEx(
     WS_EX_CLIENTEDGE, L"EDIT", L"",
     WS_CHILD | WS_TABSTOP | WS_VSCROLL | ES_AUTOVSCROLL | ES_MULTILINE | ES_WANTRETURN | (textEdit.state.wordWrap == false ? WS_HSCROLL | ES_AUTOHSCROLL : 0),
-    0, 0, 0, 0, parentWindow->p.hwnd, (HMENU)id, GetModuleHandle(0), 0
+    0, 0, 0, 0, parentHwnd, (HMENU)id, GetModuleHandle(0), 0
   );
   SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)&textEdit);
   setDefaultFont();
@@ -55,4 +57,11 @@ void pTextEdit::destructor() {
 void pTextEdit::orphan() {
   destructor();
   constructor();
+}
+
+void pTextEdit::onChange() {
+  if(locked) return;
+  if(textEdit.onChange) textEdit.onChange();
+}
+
 }

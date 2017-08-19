@@ -1,9 +1,7 @@
-Geometry pVerticalSlider::minimumGeometry() {
-  return { 0, 0, 20, 0 };
-}
+namespace phoenix {
 
-unsigned pVerticalSlider::position() {
-  return qtSlider->value();
+Size pVerticalSlider::minimumSize() {
+  return {20, 0};
 }
 
 void pVerticalSlider::setLength(unsigned length) {
@@ -29,7 +27,7 @@ void pVerticalSlider::constructor() {
 
 void pVerticalSlider::destructor() {
   delete qtSlider;
-  qtWidget = qtSlider = 0;
+  qtWidget = qtSlider = nullptr;
 }
 
 void pVerticalSlider::orphan() {
@@ -38,6 +36,8 @@ void pVerticalSlider::orphan() {
 }
 
 void pVerticalSlider::onChange() {
-  verticalSlider.state.position = position();
+  verticalSlider.state.position = qtSlider->value();
   if(verticalSlider.onChange) verticalSlider.onChange();
+}
+
 }

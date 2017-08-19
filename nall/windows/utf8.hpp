@@ -16,10 +16,13 @@
 #include <windows.h>
 #undef interface
 
+#if !defined(PATH_MAX)
+  #define PATH_MAX 260
+#endif
+
 namespace nall {
   //UTF-8 to UTF-16
-  class utf16_t {
-  public:
+  struct utf16_t {
     operator wchar_t*() {
       return buffer;
     }
@@ -28,9 +31,9 @@ namespace nall {
       return buffer;
     }
 
-    utf16_t(const char *s = "") {
+    utf16_t(const char* s = "") {
       if(!s) s = "";
-      unsigned length = MultiByteToWideChar(CP_UTF8, 0, s, -1, 0, 0);
+      unsigned length = MultiByteToWideChar(CP_UTF8, 0, s, -1, nullptr, 0);
       buffer = new wchar_t[length + 1]();
       MultiByteToWideChar(CP_UTF8, 0, s, -1, buffer, length);
     }
@@ -40,12 +43,11 @@ namespace nall {
     }
 
   private:
-    wchar_t *buffer;
+    wchar_t* buffer;
   };
 
   //UTF-16 to UTF-8
-  class utf8_t {
-  public:
+  struct utf8_t {
     operator char*() {
       return buffer;
     }
@@ -54,11 +56,11 @@ namespace nall {
       return buffer;
     }
 
-    utf8_t(const wchar_t *s = L"") {
+    utf8_t(const wchar_t* s = L"") {
       if(!s) s = L"";
-      unsigned length = WideCharToMultiByte(CP_UTF8, 0, s, -1, 0, 0, (const char*)0, (BOOL*)0);
+      unsigned length = WideCharToMultiByte(CP_UTF8, 0, s, -1, nullptr, 0, nullptr, nullptr);
       buffer = new char[length + 1]();
-      WideCharToMultiByte(CP_UTF8, 0, s, -1, buffer, length, (const char*)0, (BOOL*)0);
+      WideCharToMultiByte(CP_UTF8, 0, s, -1, buffer, length, nullptr, nullptr);
     }
 
     ~utf8_t() {
@@ -69,14 +71,14 @@ namespace nall {
     utf8_t& operator=(const utf8_t&) = delete;
 
   private:
-    char *buffer;
+    char* buffer;
   };
 
-  inline void utf8_args(int &argc, char **&argv) {
-    wchar_t **wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  inline void utf8_args(int& argc, char**& argv) {
+    wchar_t** wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     argv = new char*[argc];
     for(unsigned i = 0; i < argc; i++) {
-      argv[i] = new char[_MAX_PATH];
+      argv[i] = new char[PATH_MAX];
       strcpy(argv[i], nall::utf8_t(wargv[i]));
     }
   }
