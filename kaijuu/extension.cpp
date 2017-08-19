@@ -7,7 +7,7 @@ CShellExt::~CShellExt() {
   referenceCount--;
 }
 
-STDMETHODIMP CShellExt::QueryInterface(REFIID riid, LPVOID *ppv) {
+auto CShellExt::QueryInterface(REFIID riid, LPVOID *ppv) -> STDMETHODIMP {
   *ppv = nullptr;
 
   if(IsEqualIID(riid, IID_IShellExtInit) || IsEqualIID(riid, IID_IUnknown)) {
@@ -24,17 +24,17 @@ STDMETHODIMP CShellExt::QueryInterface(REFIID riid, LPVOID *ppv) {
   return E_NOINTERFACE;
 }
 
-STDMETHODIMP_(ULONG) CShellExt::AddRef() {
+auto CShellExt::AddRef() -> STDMETHODIMP_(ULONG) {
   return ++instanceCount;
 }
 
-STDMETHODIMP_(ULONG) CShellExt::Release() {
+auto CShellExt::Release() -> STDMETHODIMP_(ULONG) {
   if(--instanceCount) return instanceCount;
   delete this;
   return 0;
 }
 
-STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataObject, HKEY hRegKey) {
+auto CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataObject, HKEY hRegKey) -> STDMETHODIMP {
   fileList.reset();
 
   if(pDataObject) {
@@ -48,8 +48,8 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataOb
     if(hDrop == NULL) return E_INVALIDARG;
 
     fileList.reset();
-    unsigned count = DragQueryFileW(hDrop, 0xffffffff, NULL, 0);
-    for(unsigned i = 0; i < count; i++) {
+    uint count = DragQueryFileW(hDrop, 0xffffffff, NULL, 0);
+    for(uint i : range(count)) {
       DragQueryFileW((HDROP)medium.hGlobal, i, filename, PATH_MAX);
       string name = (const char*)utf8_t(filename);
       name.transform("\\", "/");
@@ -63,9 +63,9 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, IDataObject *pDataOb
   return S_OK;
 }
 
-STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) {
+auto CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) -> STDMETHODIMP {
   settings.load();
-  unsigned idCmd = idCmdFirst;
+  uint idCmd = idCmdFirst;
   bool firstDefault = true;
 
   auto ruleIDs = matchedRules();
@@ -84,16 +84,16 @@ STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmd
   return MAKE_HRESULT(SEVERITY_SUCCESS, 0, USHORT(idCmd - idCmdFirst));
 }
 
-STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, LPUINT lpReserved, LPSTR pszName, UINT uMaxNameLen) {
+auto CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, LPUINT lpReserved, LPSTR pszName, UINT uMaxNameLen) -> STDMETHODIMP {
   if(idCmd < settings.rules.size()) return S_OK;
   return E_INVALIDARG;
 }
 
-STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
+auto CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) -> STDMETHODIMP {
   if(HIWORD(lpcmi->lpVerb) != 0) return E_INVALIDARG;  //ignore actual string verbs
 
   settings.load();
-  unsigned id = LOWORD(lpcmi->lpVerb);
+  uint id = LOWORD(lpcmi->lpVerb);
   auto ruleIDs = matchedRules();
   auto &rule = settings.rules(ruleIDs(id));
 
@@ -138,11 +138,11 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi) {
   return S_OK;
 }
 
-vector<unsigned> CShellExt::matchedRules() {
-  vector<unsigned> matched;
+auto CShellExt::matchedRules() -> vector<uint> {
+  vector<uint> matched;
   if(fileList.size() == 0) return matched;
 
-  for(unsigned id = 0; id < settings.rules.size(); id++) {
+  for(uint id : range(settings.rules.size())) {
     auto &rule = settings.rules(id);
     if(rule.multiSelection == false && fileList.size() > 1) continue;
     bool proceed = true;

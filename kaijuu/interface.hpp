@@ -64,9 +64,9 @@ struct RuleEditor : Window {
       LineEdit commandValue{&commandLayout, Size{~0, 0}};
       Button commandSelect{&commandLayout, Size{80, 0}};
     HorizontalLayout controlLayout{&layout, Size{~0, 0}};
-      CheckLabel defaultAction{&controlLayout, Size{0, 0}};
-      CheckLabel filesAction{&controlLayout, Size{0, 0}};
-      CheckLabel foldersAction{&controlLayout, Size{0, 0}};
+      CheckLabel defaultAction{&controlLayout, Size{90, 0}};
+      CheckLabel filesAction{&controlLayout, Size{90, 0}};
+      CheckLabel foldersAction{&controlLayout, Size{90, 0}};
       Widget spacer{&controlLayout, Size{~0, 0}};
       Button assignButton{&controlLayout, Size{80, 0}};
 };

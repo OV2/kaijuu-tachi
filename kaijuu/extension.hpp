@@ -1,23 +1,23 @@
 struct CShellExt : IContextMenu, IShellExtInit {
 protected:
-  unsigned instanceCount;
+  uint instanceCount;
   string_vector fileList;
 
 public:
   CShellExt();
   ~CShellExt();
 
-  STDMETHODIMP QueryInterface(REFIID, LPVOID*);
-  STDMETHODIMP_(ULONG) AddRef();
-  STDMETHODIMP_(ULONG) Release();
+  auto QueryInterface(REFIID, LPVOID*) -> STDMETHODIMP;
+  auto AddRef() -> STDMETHODIMP_(ULONG);
+  auto Release() -> STDMETHODIMP_(ULONG);
 
-  STDMETHODIMP QueryContextMenu(HMENU, UINT, UINT, UINT, UINT);
-  STDMETHODIMP InvokeCommand(LPCMINVOKECOMMANDINFO);
-  STDMETHODIMP GetCommandString(UINT_PTR, UINT, UINT FAR*, LPSTR, UINT);
-  STDMETHODIMP Initialize(LPCITEMIDLIST, LPDATAOBJECT, HKEY);
+  auto QueryContextMenu(HMENU, UINT, UINT, UINT, UINT) -> STDMETHODIMP;
+  auto InvokeCommand(LPCMINVOKECOMMANDINFO) -> STDMETHODIMP;
+  auto GetCommandString(UINT_PTR, UINT, UINT FAR*, LPSTR, UINT) -> STDMETHODIMP;
+  auto Initialize(LPCITEMIDLIST, LPDATAOBJECT, HKEY) -> STDMETHODIMP;
 
 private:
-  vector<unsigned> matchedRules();
+  vector<uint> matchedRules();
 };
 
 typedef CShellExt *LPCSHELLEXT;

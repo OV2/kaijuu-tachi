@@ -17,7 +17,7 @@ using namespace nall;
 #define IDM_CFOPEN 0
 
 HINSTANCE module = NULL;
-unsigned referenceCount = 0;
+uint referenceCount = 0;
 
 #include "guid.hpp"
 #include "settings.hpp"

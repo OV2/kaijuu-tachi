@@ -1,17 +1,17 @@
 struct CShellExtClassFactory : IClassFactory {
 protected:
-  unsigned instanceCount;
+  uint instanceCount;
 
 public:
   CShellExtClassFactory();
   ~CShellExtClassFactory();
 
-  STDMETHODIMP QueryInterface(REFIID, LPVOID FAR*);
-  STDMETHODIMP_(ULONG) AddRef();
-  STDMETHODIMP_(ULONG) Release();
+  auto QueryInterface(REFIID, LPVOID FAR*) -> STDMETHODIMP;
+  auto AddRef() -> STDMETHODIMP_(ULONG);
+  auto Release() -> STDMETHODIMP_(ULONG);
 
-  STDMETHODIMP CreateInstance(LPUNKNOWN, REFIID, LPVOID FAR*);
-  STDMETHODIMP LockServer(BOOL);
+  auto CreateInstance(LPUNKNOWN, REFIID, LPVOID FAR*) -> STDMETHODIMP;
+  auto LockServer(BOOL) -> STDMETHODIMP;
 };
 
 typedef CShellExtClassFactory *LPCSHELLEXTCLASSFACTORY;

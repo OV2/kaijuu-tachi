@@ -31,7 +31,7 @@ struct Settings {
 
   auto save() -> void {
     registry::remove("HKCU\\Software\\Kaijuu\\");
-    for(uint id = 0; id < rules.size(); id++) {
+    for(uint id : range(rules.size())) {
       auto &rule = rules(id);
       string path = {"HKCU\\Software\\Kaijuu\\", pad(id, 3, '0'), "\\"};
       registry::write({path, "Name"}, rule.name);

@@ -6,37 +6,32 @@ RuleEditor* ruleEditor = nullptr;
 
 Program::Program(const string &pathname) : pathname(pathname) {
   setTitle("kaijuu v06r02");
-  setFrameGeometry({64, 64, 1024 - 75, 480});
 
   layout.setMargin(5);
   statusLabel.setFont(Font().setBold());
-  uninstallButton.setText("Uninstall");
-  installButton.setText("Install");
-  appendButton.setText("Append");
-  modifyButton.setText("Modify");
-  moveUpButton.setText("Move Up");
-  moveDownButton.setText("Move Down");
-  removeButton.setText("Remove");
-  resetButton.setText("Reset");
-  helpButton.setText("Help ...");
+
+  uninstallButton.setText("Uninstall").onActivate({&Program::uninstall, this});
+  installButton.setText("Install").onActivate({&Program::install, this});
+
+  settingList.onActivate({&Program::modifyAction, this});
+  settingList.onChange({&Program::synchronize, this});
+
+  appendButton.setText("Append").onActivate({&Program::appendAction, this});
+  modifyButton.setText("Modify").onActivate({&Program::modifyAction, this});
+  moveUpButton.setText("Move Up").onActivate({&Program::moveUpAction, this});
+  moveDownButton.setText("Move Down").onActivate({&Program::moveDownAction, this});
+  removeButton.setText("Remove").onActivate({&Program::removeAction, this});
+  resetButton.setText("Reset").onActivate({&Program::resetAction, this});
+  helpButton.setText("Help ...").onActivate([&] { invoke("kaijuu.html"); });
 
   canvas.setIcon(resource::icon);
 
   onClose(&Application::quit);
-  installButton.onActivate({&Program::install, this});
-  uninstallButton.onActivate({&Program::uninstall, this});
-  settingList.onActivate({&Program::modifyAction, this});
-  settingList.onChange({&Program::synchronize, this});
-  appendButton.onActivate({&Program::appendAction, this});
-  modifyButton.onActivate({&Program::modifyAction, this});
-  moveUpButton.onActivate({&Program::moveUpAction, this});
-  moveDownButton.onActivate({&Program::moveDownAction, this});
-  removeButton.onActivate({&Program::removeAction, this});
-  resetButton.onActivate({&Program::resetAction, this});
-  helpButton.onActivate([&] { nall::invoke("kaijuu.html"); });
   refresh();
   synchronize();
   setVisible();
+
+  setFrameGeometry({64, 64, 1024 - 75, 480});
 }
 
 auto Program::synchronize() -> void {
@@ -157,23 +152,19 @@ auto Program::resetAction() -> void {
 
 RuleEditor::RuleEditor() : index(-1) {
   setTitle("Rule Editor");
-  setFrameGeometry({128, 256, 500, 160});
 
   layout.setMargin(5);
-  nameLabel.setText("Name:");
-  patternLabel.setText("Pattern:");
-  commandLabel.setText("Command:");
-  commandSelect.setText("Select ...");
-  defaultAction.setText("Default Action");
-  filesAction.setText("Match Files");
-  foldersAction.setText("Match Folders");
-  assignButton.setText("Assign");
 
+  nameLabel.setText("Name:");
   nameValue.onChange({&RuleEditor::synchronize, this});
+
+  patternLabel.setText("Pattern:");
   patternValue.onChange({&RuleEditor::synchronize, this});
+
+  commandLabel.setText("Command:");
   commandValue.onChange({&RuleEditor::synchronize, this});
 
-  commandSelect.onActivate([&] {
+  commandSelect.setText("Select ...").onActivate([&] {
     string pathname = BrowserWindow().setParent(*this)
     .setPath(program->pathname)
     .setFilters({"Programs (*.exe)", "All Files (*)"})
@@ -184,6 +175,11 @@ RuleEditor::RuleEditor() : index(-1) {
     }
     synchronize();
   });
+
+  defaultAction.setText("Default Action");
+  filesAction.setText("Match Files");
+  foldersAction.setText("Match Folders");
+  assignButton.setText("Assign");
 
   auto assign = [&] {
     Settings::Rule rule = {
@@ -210,6 +206,8 @@ RuleEditor::RuleEditor() : index(-1) {
   patternValue.onActivate(assign);
   commandValue.onActivate(assign);
   assignButton.onActivate(assign);
+
+  setFrameGeometry({128, 256, 500, 160});
 }
 
 auto RuleEditor::synchronize() -> void {

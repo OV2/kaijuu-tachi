@@ -7,7 +7,7 @@ CShellExtClassFactory::~CShellExtClassFactory() {
   referenceCount--;
 }
 
-STDMETHODIMP CShellExtClassFactory::QueryInterface(REFIID riid, LPVOID *ppv) {
+auto CShellExtClassFactory::QueryInterface(REFIID riid, LPVOID *ppv) -> STDMETHODIMP {
   *ppv = NULL;
   if(IsEqualIID(riid, IID_IUnknown) || IsEqualIID(riid, IID_IClassFactory)) {
     *ppv = (LPCLASSFACTORY)this;
@@ -17,17 +17,17 @@ STDMETHODIMP CShellExtClassFactory::QueryInterface(REFIID riid, LPVOID *ppv) {
   return E_NOINTERFACE;
 }
 
-STDMETHODIMP_(ULONG) CShellExtClassFactory::AddRef() {
+auto CShellExtClassFactory::AddRef() -> STDMETHODIMP_(ULONG) {
   return ++instanceCount;
 }
 
-STDMETHODIMP_(ULONG) CShellExtClassFactory::Release() {
+auto CShellExtClassFactory::Release() -> STDMETHODIMP_(ULONG) {
   if(--instanceCount) return instanceCount;
   delete this;
   return 0;
 }
 
-STDMETHODIMP CShellExtClassFactory::CreateInstance(LPUNKNOWN pUnknownOuter, REFIID riid, LPVOID *ppv) {
+auto CShellExtClassFactory::CreateInstance(LPUNKNOWN pUnknownOuter, REFIID riid, LPVOID *ppv) -> STDMETHODIMP {
   *ppv = NULL;
   if(pUnknownOuter) return CLASS_E_NOAGGREGATION;
   CShellExt *pShellExt = new CShellExt();
@@ -35,6 +35,6 @@ STDMETHODIMP CShellExtClassFactory::CreateInstance(LPUNKNOWN pUnknownOuter, REFI
   return pShellExt->QueryInterface(riid, ppv);
 }
 
-STDMETHODIMP CShellExtClassFactory::LockServer(BOOL fLock) {
+auto CShellExtClassFactory::LockServer(BOOL fLock) -> STDMETHODIMP {
   return NOERROR;
 }
