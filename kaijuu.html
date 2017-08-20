@@ -2,8 +2,34 @@
   <head>
     <title>kaijuu User Manual</title>
     <style type="text/css">
+      body {
+        background: #fff;
+        color: #000;
+        font-family: arial, helvetica;
+        font-size: 0.9em;
+      }
+
       h1, h2, h3, h4, h5, h6 {
         margin: 0em;
+      }
+
+      h2 {
+        background: #eef;
+        font-size: 1.2em;
+        margin-bottom: 0.25em;
+        padding: 0.25em;
+      }
+
+      h3 {
+        border-bottom: 2px solid #eee;
+        font-size: 0.9em;
+        margin-bottom: 0.25em;
+      }
+
+      h4 {
+        border-bottom: 1px dashed #ccc;
+        font-size: 0.9em;
+        font-weight: normal;
       }
 
       p {
@@ -11,19 +37,16 @@
         margin-bottom: 1em;
       }
 
-      table {
-        border-collapse: collapse;
-      }
-
-      td, th {
-        border: 1px solid #ccc;
-        padding: 0.25em;
-        text-align: left;
+      pre {
+        background: #fee;
+        margin-top: 0.5em;
+        padding: 0.5em;
+        white-space: pre-line;
       }
     </style>
   </head>
   <body>
-    <h1>kaijuu v06r02</h1>
+    <h1>kaijuu v06r03</h1>
     Original Author: byuu<br>
     Current Maintainer: hex_usr<br>
     License: ISC<br>
@@ -77,6 +100,9 @@
     <i>Reset</i> button to erase all saved settings. There is no
     guarantee of backward-compatibility between kaijuu revisions.</p>
 
+    <p>kaijuu's rules are stored in the following registry key:</p>
+    <pre>HKEY_CURRENT_USER\Software\Kaijuu</pre>
+
     <h3>Configuration</h3>
     <p>The kaijuu EXE not only handles installation and removal, it also
     handles modifying the rules.</p>
@@ -93,8 +119,12 @@
 
     <p><i>Append</i> will add new rules, <i>Modify</i> will edit an
     existing rule, <i>Move Up</i> and <i>Move Down</i> can be used to
-    modify the priority ordering, <i>Remove</i> can delete the selected
-    rule, and <i>Reset</i> can delete all rules.</p>
+    modify the priority ordering, and <i>Remove</i> will delete the
+    selected rule.</p>
+
+    <p><i>Import</i> will overwrite all rules with ones imported from
+    a file named "rules.bml", <i>Export</i> will export all rules to
+    "rules.bml", and <i>Reset</i> will delete all rules.</p>
 
     <h3>Rules</h3>
     <p>You can have a maximum of 1000 rules. You will see every matched

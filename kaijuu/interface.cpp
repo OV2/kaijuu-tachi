@@ -21,6 +21,8 @@ Program::Program(const string &pathname) : pathname(pathname) {
   moveUpButton.setText("Move Up").onActivate({&Program::moveUpAction, this});
   moveDownButton.setText("Move Down").onActivate({&Program::moveDownAction, this});
   removeButton.setText("Remove").onActivate({&Program::removeAction, this});
+  importButton.setText("Import").onActivate({&Program::importAction, this});
+  exportButton.setText("Export").onActivate({&Program::exportAction, this});
   resetButton.setText("Reset").onActivate({&Program::resetAction, this});
   helpButton.setText("Help ...").onActivate([&] { invoke("kaijuu.html"); });
 
@@ -139,6 +141,54 @@ auto Program::removeAction() -> void {
   settings.save();
   refresh();
   synchronize();
+}
+
+auto Program::importAction() -> void {
+  if(!file::exists("rules.bml")) {
+    MessageWindow().setParent(*this).setText("Error: could not find rules.bml.").error();
+    return;
+  }
+  if(MessageWindow().setParent(*this).setText("Warning: this will overwrite all rules! Are you sure you want to do this?")
+  .question() == MessageWindow::Response::No) return;
+  settings.rules.reset();
+
+  auto input = BML::unserialize(file::read("rules.bml"));
+  for(auto& node : input.find("rule")) {
+    settings.rules.append({
+      node["name"].text(),
+      node["pattern"].text(),
+      node["default-action"].boolean(),
+      node["match-files"].boolean(),
+      node["match-folders"].boolean(),
+      node["command"].text(),
+      node["multi-selection"].boolean(),
+    });
+  }
+
+  settings.save();
+  refresh();
+  synchronize();
+}
+
+auto Program::exportAction() -> void {
+  if(file::exists("rules.bml")) {
+    if(MessageWindow().setParent(*this).setText("Warning: rules.bml already exists! Are you sure you want to overwrite it?")
+    .question() == MessageWindow::Response::No) return;
+  }
+  string output;
+  for(auto& rule : settings.rules) {
+    Markup::Node node;
+    node("rule/name").setValue(rule.name);
+    node("rule/pattern").setValue(rule.pattern);
+    node("rule/default-action").setValue(rule.defaultAction);
+    node("rule/match-files").setValue(rule.matchFiles);
+    node("rule/match-folders").setValue(rule.matchFolders);
+    node("rule/command").setValue(rule.command);
+    node("rule/multi-selection").setValue(rule.multiSelection);
+    output.append(BML::serialize(node), "\n");
+  }
+  file::write("rules.bml", output);
+  MessageWindow().setParent(*this).setText("Exported to rules.bml.").information();
 }
 
 auto Program::resetAction() -> void {

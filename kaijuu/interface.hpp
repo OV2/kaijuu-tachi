@@ -21,6 +21,8 @@ struct Program : Window {
   auto moveUpAction() -> void;
   auto moveDownAction() -> void;
   auto removeAction() -> void;
+  auto importAction() -> void;
+  auto exportAction() -> void;
   auto resetAction() -> void;
 
   string pathname;
@@ -39,6 +41,8 @@ struct Program : Window {
         Button moveDownButton{&controlLayout, Size{80, 0}};
         Button removeButton{&controlLayout, Size{80, 0}};
         Widget spacer{&controlLayout, Size{0, ~0}};
+        Button importButton{&controlLayout, Size{80, 0}};
+        Button exportButton{&controlLayout, Size{80, 0}};
         Button resetButton{&controlLayout, Size{80, 0}};
         Button helpButton{&controlLayout, Size{80, 0}};
         Canvas canvas{&controlLayout, Size{80, 88}};

@@ -1,4 +1,4 @@
-kaijuu-tachi v06r02
+kaijuu-tachi v06r03
 Author: hex_usr
 Dependencies:
   nall (by byuu)
