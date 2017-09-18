@@ -1,4 +1,5 @@
 #include <nall/platform.hpp>
+#include <nall/path.hpp>
 #include <nall/run.hpp>
 #include <nall/string.hpp>
 #include <nall/windows/registry.hpp>

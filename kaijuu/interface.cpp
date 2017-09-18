@@ -5,7 +5,7 @@ RuleEditor* ruleEditor = nullptr;
 #include "resource/resource.cpp"
 
 Program::Program(const string &pathname) : pathname(pathname) {
-  setTitle("kaijuu v06r02");
+  setTitle("kaijuu v06r03");
 
   layout.setMargin(5);
   statusLabel.setFont(Font().setBold());
