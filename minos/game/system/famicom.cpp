@@ -1,7 +1,7 @@
 Markup::Node Game::nes20Settings;
 
 auto Game::fc_romSpecial(
-  string specialType,
+  const string& specialType,
   file& temporaryRom,
   Markup::Node& manifest
 ) -> void {
@@ -27,7 +27,7 @@ auto Game::fc_romSpecial(
 }
 
 auto Game::vs_romSpecial(
-  string specialType,
+  const string& specialType,
   file& temporaryRom,
   Markup::Node& manifest
 ) -> void {
@@ -37,7 +37,7 @@ auto Game::vs_romSpecial(
 }
 
 auto Game::pc10_romSpecial(
-  string specialType,
+  const string& specialType,
   file& temporaryRom,
   Markup::Node& manifest
 ) -> void {

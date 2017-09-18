@@ -1,19 +1,19 @@
 struct Game {
-  Game(string pathname);
+  Game(const string& pathname);
 
-  auto play(string name) -> void;
+  auto play(const string& name) -> void;
   auto play() -> void;
 
 private:
   static Markup::Node settings;
   static auto initializeSettings() -> void;
 
-  auto loadManifest(string path) -> Markup::Node;
+  auto loadManifest(const string& path) -> Markup::Node;
   auto setEmulator() -> void;
-  auto setEmulator(string name) -> void;
-  auto emulatorSettingNode(string name) -> Markup::Node;
-  auto emulatorSetting(string name) -> string;
-  auto emulatorRamName(string ext) -> string;
+  auto setEmulator(const string& name) -> void;
+  auto emulatorSettingNode(const string& name) -> Markup::Node;
+  auto emulatorSetting(const string& name) -> string;
+  auto emulatorRamName(const string& ext) -> string;
   auto romInternalName() -> string;
 
   auto _play() -> void;
@@ -26,8 +26,8 @@ private:
   auto depurifyRam() -> void;
   auto depurifyStates() -> void;
 
-  auto appendFile(file& destination, string sourcePath) -> void;
-  auto appendFile(file& destination, string sourcePath, uint start, uint length) -> void;
+  auto appendFile(file& destination, const string& sourcePath) -> void;
+  auto appendFile(file& destination, const string& sourcePath, uint start, uint length) -> void;
 
   auto repurify() -> void;
   auto repurifyRom() -> void;
@@ -66,9 +66,9 @@ private:
 
   //Console-specific functions
   #define romSpecial(comp)\
-    auto comp##_romSpecial(string, file&, Markup::Node&) -> void
+    auto comp##_romSpecial(const string&, file&, Markup::Node&) -> void
   #define ramSpecial(comp)\
-    auto comp##_ramSpecial(string, file&, Markup::Node&) -> void
+    auto comp##_ramSpecial(const string&, file&, Markup::Node&) -> void
   #define slotRom(comp)\
     auto comp##_slotRom(Markup::Node&, Slot&, file&, Markup::Node&) -> void
   #define slotRam(comp)\

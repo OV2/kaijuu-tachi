@@ -1,5 +1,5 @@
 auto Game::nss_romSpecial(
-  string specialType,
+  const string& specialType,
   file& temporaryRom,
   Markup::Node& manifest
 ) -> void {

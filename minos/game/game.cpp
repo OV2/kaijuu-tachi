@@ -12,7 +12,7 @@ Markup::Node Game::settings;
 #include "system/mega-drive.cpp"
 #include "system/nintendo-ds.cpp"
 
-Game::Game(string pathName) {
+Game::Game(const string& pathName) {
   Game::initializeSettings();
 
   name = Location::base(pathName);
@@ -30,7 +30,7 @@ Game::Game(string pathName) {
   extensionSettings = Game::settings.find({"extension(name=", temporaryRomType, ")"})(0);
 }
 
-auto Game::play(string name) -> void {
+auto Game::play(const string& name) -> void {
   setEmulator(name);
   _play();
 }
@@ -46,7 +46,7 @@ auto Game::initializeSettings() -> void {
   Game::settings = BML::unserialize(file::read({Path::program(), "settings.bml"}));
 }
 
-auto Game::loadManifest(string path) -> Markup::Node {
+auto Game::loadManifest(const string& path) -> Markup::Node {
   string manifestPath = {path, "manifest.bml"};
   if(file::exists(manifestPath)) {
     return BML::unserialize(file::read(manifestPath));
@@ -71,7 +71,7 @@ auto Game::setEmulator() -> void {
   setEmulator(extensionSettings["emulator"].text());
 }
 
-auto Game::setEmulator(string name) -> void {
+auto Game::setEmulator(const string& name) -> void {
   emulatorName = name;
 
   emulatorSettings = Game::settings.find({"emulator(name=", emulatorName, ")"})(0);
@@ -80,18 +80,18 @@ auto Game::setEmulator(string name) -> void {
   emulatorExtensionSettings = Game::settings.find({"emulator(name=", emulatorName, ")/", temporaryRomType})(0);
 }
 
-auto Game::emulatorSettingNode(string name) -> Markup::Node {
-  for(const Markup::Node node : {emulatorExtensionSettings, emulatorSettings, extensionSettings}) {
+auto Game::emulatorSettingNode(const string& name) -> Markup::Node {
+  for(const Markup::Node& node : {emulatorExtensionSettings, emulatorSettings, extensionSettings}) {
     if(auto result = node.find(name)) return result(0);
   }
   return Markup::Node{};
 }
 
-auto Game::emulatorSetting(string name) -> string {
+auto Game::emulatorSetting(const string& name) -> string {
   return emulatorSettingNode(name).text();
 }
 
-auto Game::emulatorRamName(string ext) -> string {
+auto Game::emulatorRamName(const string& ext) -> string {
   string ramNameFormat = emulatorSetting("ram-name-format");
   if(!ramNameFormat) return {Location::prefix(name), ".", ext};
   if(ramNameFormat.find("<name>")) {
@@ -351,7 +351,7 @@ auto Game::depurifyStates() -> void {
   }
 }
 
-auto Game::appendFile(file& destination, string sourcePath) -> void {
+auto Game::appendFile(file& destination, const string& sourcePath) -> void {
   file source(sourcePath, file::mode::read);
   uint size = source.size();
   uint8_t* buffer = new uint8_t[size];
@@ -361,7 +361,7 @@ auto Game::appendFile(file& destination, string sourcePath) -> void {
   delete[] buffer;
 };
 
-auto Game::appendFile(file& destination, string sourcePath, uint start, uint length) -> void {
+auto Game::appendFile(file& destination, const string& sourcePath, uint start, uint length) -> void {
   file source(sourcePath, file::mode::read);
   uint8_t* buffer = new uint8_t[length];
   source.seek(start);
