@@ -20,6 +20,7 @@ private:
 
   auto validate() -> bool;
 
+  //purify.cpp
   auto depurify() -> void;
   auto promptSlots() -> void;
   auto depurifyRom() -> void;
