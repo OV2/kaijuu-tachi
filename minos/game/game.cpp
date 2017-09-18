@@ -6,11 +6,11 @@
 
 Markup::Node Game::settings;
 
-#include "famicom.cpp"
-#include "super-famicom.cpp"
-#include "nintendo-64.cpp"
-#include "mega-drive.cpp"
-#include "nintendo-ds.cpp"
+#include "system/famicom.cpp"
+#include "system/super-famicom.cpp"
+#include "system/nintendo-64.cpp"
+#include "system/mega-drive.cpp"
+#include "system/nintendo-ds.cpp"
 
 Game::Game(string pathName) {
   Game::initializeSettings();

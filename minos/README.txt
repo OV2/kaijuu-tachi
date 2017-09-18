@@ -1,4 +1,4 @@
-﻿minos v06r02
+minos v06r03
 Author: hex_usr
 Dependencies:
   nall (by byuu)

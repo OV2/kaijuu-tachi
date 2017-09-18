@@ -52,7 +52,7 @@
     License: ISC<br>
     <br>
 
-    <h3>Overview</h3>
+    <h2>Overview</h2>
     <p>kaijuu is a Windows context menu shell extension. The context
     menu is the list you see when you right-click on a file or folder.
     kaijuu allows you to add your own custom actions to this menu.</p>
@@ -70,7 +70,7 @@
     program. You can have rules on a per-user basis. And you can do all
     of this from an easy-to-use GUI.</p>
 
-    <h3>Installation</h3>
+    <h2>Installation</h2>
     <p>If you wish to compile kaijuu, you will need to install
     <a href="http://tdm-gcc.tdragon.net/">TDM-GCC</a>. Visual Studio does
     not support some of the features used in kaijuu's source code.</p>
@@ -89,7 +89,7 @@
     have administrator access to use the kaijuu EXE, as this is
     necessary to install and uninstall shell extensions.</p>
 
-    <h3>Removal and Upgrading</h3>
+    <h2>Removal and Upgrading</h2>
     <p>To remove or upgrade kaijuu, you must first uninstall the shell
     extension. Run the kaijuu EXE, and click on <i>Uninstall</i>. You
     must now close all open instances of Windows Explorer, in order for
@@ -103,7 +103,7 @@
     <p>kaijuu's rules are stored in the following registry key:</p>
     <pre>HKEY_CURRENT_USER\Software\Kaijuu</pre>
 
-    <h3>Configuration</h3>
+    <h2>Configuration</h2>
     <p>The kaijuu EXE not only handles installation and removal, it also
     handles modifying the rules.</p>
 
@@ -126,7 +126,7 @@
     a file named "rules.bml", <i>Export</i> will export all rules to
     "rules.bml", and <i>Reset</i> will delete all rules.</p>
 
-    <h3>Rules</h3>
+    <h2>Rules</h2>
     <p>You can have a maximum of 1000 rules. You will see every matched
     rule in the context menu when you right-click on files or folders.</p>
 
@@ -225,9 +225,10 @@
     <table>
       <tr><th>Name</th><th>Default</th><th>Match</th><th>Pattern</th><th>Command</th></tr>
       <tr><td>Open terminal here</td><td>No</td><td>Folders</td><td>*</td><td>cmd /k cd /d {path}</td></tr>
-      <tr><td>Edit Makefile</td><td>Yes</td><td>Files</td><td>Makefile</td><td>notepad {file}</td></tr>
+      <tr><td>Make</td><td>Yes</td><td>Files</td><td>GNUmakefile</td><td>mingw32-make</td></tr>
+      <tr><td>Edit Makefile</td><td>No</td><td>Files</td><td>GNUmakefile</td><td>notepad {file}</td></tr>
       <tr><td>Play song(s)</td><td>No</td><td>Files</td><td>*.mp3</td><td>"c:\winamp.exe" {files}</td></tr>
-      <tr><td>Load as Game Folder</td><td>Yes</td><td>Folders</td><td>*.fc;*.sfc;*.gba</td><td>"c:\bsnes.exe" {path}</td></tr>
+      <tr><td>Load as Game Folder</td><td>Yes</td><td>Folders</td><td>*.fc;*.sfc;*.gba</td><td>"c:\higan.exe" {path}</td></tr>
     </table>
   </body>
 </html>
