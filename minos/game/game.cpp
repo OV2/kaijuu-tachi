@@ -122,8 +122,12 @@ auto Game::emulatorRamName(const string& ext) -> string {
 }
 
 auto Game::romInternalName() -> string {
-  if(type == "n64") return n64_romInternalName();
-  return Location::prefix(name);
+  static string internalName;
+  if(!internalName) {
+    if(type == "n64") internalName = n64_romInternalName();
+    else              internalName = Location::prefix(name);
+  }
+  return internalName;
 }
 
 auto Game::validate() -> bool {
