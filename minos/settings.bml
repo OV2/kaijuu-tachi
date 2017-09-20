@@ -241,8 +241,8 @@ extension name=st
   ram-path:C:/Emulation/Sufami Turbo/Saves
 
 extension name=n64
-  emulator=Project64
-  ram-path:C:/Project64/Save
+  emulator=mupen64plus
+  ram-path:C:/mupen64plus/save
 
 extension name=sg
   emulator=KegaFusion
@@ -280,9 +280,11 @@ extension name=gg
 
 extension name=ws
   emulator=Oswan
+  ram-path:C:/Oswan/save
 
 extension name=wsc
   emulator=Oswan
+  ram-path:C:/Oswan/save
 
 extension name=ngp
   emulator=Mednafen
@@ -389,16 +391,20 @@ emulator name=no$sns
 emulator name=mupen64plus
   path:C:/mupen64plus/mupen64plus.exe
   ram-name-format:<goodset>.<ext>
+    fallback:<internal> (unknown rom).<ext>
+  state-path:C:/mupen64plus/save
 
 emulator name=Project64
   path:C:/Project64_20/Project64.exe
   ram-path:C:/Project64_20/Save
   ram-name-format:<internal>.<ext>
+  state-path:C:/Project64_20/Save
 
 emulator name=Project64_17
   path:C:/Project64_17/Project64.exe
   ram-path:C:/Project64_17/Save
   ram-name-format:<internal>.<ext>
+  state-path:C:/Project64_17/Save
 
 emulator name=BlastEm
   path:C:/blastem/blastem.exe
@@ -473,6 +479,7 @@ emulator name=DeSmuME
 
 emulator name=Oswan
   path:C:/Oswan/Oswan.exe
+  ram-path:C:/Oswan/save
   state-path:C:/Oswan/save
   state-name:<name>.00<ordinal:1>
   pure-state-extension:ost
@@ -480,6 +487,6 @@ emulator name=Oswan
 
 emulator name=NeoPop
   path:C:/NeoPop/NeoPop-Win32.EXE
-  ram-path:C/NeoPop/Battery
+  ram-path:C:/NeoPop/Battery
   state-path:C:/NeoPop/States
   state-name:<name>.ngs

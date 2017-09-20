@@ -115,10 +115,11 @@ auto Wave::sample() -> array<double, 2> {
   };
 
   auto readFloat32 = [&]() -> float32_t {
-    //TODO: below code works only on x86
-    float32_t n = *((float32_t*)pos);
-    pos += 4;
-    return n;
+    uint32_t raw = read32();
+    int significand = (raw & 0x007fffff) | 0x800000;
+    int exponent = ((raw & 0x7f800000) >> 23) - 127;
+    int sign = 1 - ((raw & 0x80000000) >> 30);
+    return sign * (significand / 8388608.0) * pow(2, exponent);
   };
 
   auto readSample = [&]() -> double {

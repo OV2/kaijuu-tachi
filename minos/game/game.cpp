@@ -94,31 +94,41 @@ auto Game::emulatorSetting(const string& name) -> string {
 }
 
 auto Game::emulatorRamName(const string& ext) -> string {
-  string ramNameFormat = emulatorSetting("ram-name-format");
-  if(!ramNameFormat) return {Location::prefix(name), ".", ext};
-  if(ramNameFormat.find("<name>")) {
-    ramNameFormat.replace("<name>", Location::prefix(name));
-  }
-  if(ramNameFormat.find("<ext>")) {
-    ramNameFormat.replace("<ext>", ext);
-  }
-  if(ramNameFormat.find("<internal>")) {
-    ramNameFormat.replace("<internal>", romInternalName().trimRight(" "));
-  }
-  if(ramNameFormat.find("<md5>")) {
-    file::read(temporaryRomPath);
-    ramNameFormat.replace("<md5>", ramus::Hash::MD5(file::read(temporaryRomPath)).digest());
-  }
-  if(ramNameFormat.find("<fullstop-bug>")) {
-    string baseName = Location::prefix(name);
-    uint index = -1;
-    for(uint i = 0; i <= baseName.size(); i++) {
-      if(baseName[i] == '.') { index = i; break; }
+  string ramName = "";
+  for(string query : {"ram-name-format", "ram-name-format/fallback"}) {
+    string ramNameFormat = emulatorSetting(query);
+    if(!ramNameFormat) return {Location::prefix(name), ".", ext};
+    if(ramNameFormat.find("<name>")) {
+      ramNameFormat.replace("<name>", Location::prefix(name));
     }
-    if(index >= 0) ramNameFormat.replace("<fullstop-bug>", slice(baseName, 0, index));
-    else ramNameFormat.replace("<fullstop-bug>", Location::prefix(name));
+    if(ramNameFormat.find("<ext>")) {
+      ramNameFormat.replace("<ext>", ext);
+    }
+    if(ramNameFormat.find("<internal>")) {
+      ramNameFormat.replace("<internal>", romInternalName().trimRight(" "));
+    }
+    if(ramNameFormat.find("<goodset>")) {
+      string goodsetName = romGoodsetName();
+      if(!goodsetName) continue;
+      ramNameFormat.replace("<goodset>", goodsetName);
+    }
+    if(ramNameFormat.find("<md5>")) {
+      file::read(temporaryRomPath);
+      ramNameFormat.replace("<md5>", ramus::Hash::MD5(file::read(temporaryRomPath)).digest());
+    }
+    if(ramNameFormat.find("<fullstop-bug>")) {
+      string baseName = Location::prefix(name);
+      if(auto index = baseName.find(".")) {
+        ramNameFormat.replace("<fullstop-bug>", slice(baseName, 0, index()));
+      } else {
+        ramNameFormat.replace("<fullstop-bug>", Location::prefix(name));
+      }
+    }
+    ramName = ramNameFormat;
+    break;
   }
-  return ramNameFormat;
+
+  return ramName;
 }
 
 auto Game::romInternalName() -> string {
@@ -128,6 +138,15 @@ auto Game::romInternalName() -> string {
     else              internalName = Location::prefix(name);
   }
   return internalName;
+}
+
+auto Game::romGoodsetName() -> string {
+  static string goodsetName;
+  if(!goodsetName) {
+    if(type == "n64") goodsetName = n64_romGoodsetName();
+    else              goodsetName = Location::prefix(name);
+  }
+  return goodsetName;
 }
 
 auto Game::validate() -> bool {

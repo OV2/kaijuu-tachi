@@ -105,6 +105,7 @@ auto Game::depurifyRam() -> void {
       ext = ram.settings["ext"].text();
     }
     string impureRamFilename = emulatorRamName(ext);
+    if(!impureRamFilename) continue;
 
     ram.temporaryPath = {emulatorRamPath, impureRamFilename};
 

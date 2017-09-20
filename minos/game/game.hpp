@@ -14,7 +14,9 @@ private:
   auto emulatorSettingNode(const string& name) -> Markup::Node;
   auto emulatorSetting(const string& name) -> string;
   auto emulatorRamName(const string& ext) -> string;
+
   auto romInternalName() -> string;
+  auto romGoodsetName() -> string;
 
   auto _play() -> void;
 
@@ -90,6 +92,7 @@ private:
 
   //nintendo-64.cpp
   auto n64_romInternalName() -> string;
+  auto n64_romGoodsetName() -> string;
 
 public:
   struct DSVType {
