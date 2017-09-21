@@ -2,6 +2,7 @@
 #include <game/game.hpp>
 #include <ramus/hash/md5.hpp>
 #include <ramus/expand-path.hpp>
+#include <ramus/run.hpp>
 #include <ramus/shift-jis.hpp>
 
 Markup::Node Game::settings;
@@ -189,12 +190,13 @@ auto Game::_play() -> void {
   filePath = filePath.transform("/", "\\");
   #endif
 
-  auto result = execute(applicationPath, filePath);
-  if(!result) {
+  if(!file::exists(applicationPath)) {
     MessageDialog().setTitle("minos").setText({
-      "Error ", result.code, ": Could not launch ", emulatorName, "!\n"
+      "Could not find ", emulatorName, "!\n"
+      "Expected path: ", applicationPath
     }).error();
   }
+  ramus::looseExecute(applicationPath, filePath);
 
   repurify();
 }
