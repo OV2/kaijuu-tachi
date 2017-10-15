@@ -6,6 +6,7 @@ struct Settings {
     bool matchFiles;
     bool matchFolders;
     string command;
+    string icon;
     bool multiSelection;
   };
   vector<Rule> rules;
@@ -22,6 +23,7 @@ struct Settings {
         registry::read({path, "Files"}) == "true",
         registry::read({path, "Folders"}) == "true",
         registry::read({path, "Command"}),
+        registry::read({path, "Icon"}),
       });
     }
     for(auto &rule : rules) {
@@ -40,6 +42,7 @@ struct Settings {
       registry::write({path, "Files"}, rule.matchFiles);
       registry::write({path, "Folders"}, rule.matchFolders);
       registry::write({path, "Command"}, rule.command);
+      registry::write({path, "Icon"}, rule.icon);
     }
   }
 } settings;

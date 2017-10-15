@@ -1,4 +1,5 @@
 #include "kaijuu.hpp"
+#include "iconloader.cpp"
 #include "extension.cpp"
 #include "factory.cpp"
 

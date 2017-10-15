@@ -73,6 +73,13 @@ auto CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, U
     auto &rule = settings.rules(ruleID);
     if(idCmd < idCmdLast) {
       InsertMenuW(hMenu, indexMenu, MF_STRING | MF_BYPOSITION, idCmd++, (const wchar_t*)utf16_t(rule.name));
+      HBITMAP icon = iconLoader.LoadIcon(rule.icon);
+      if(icon) {
+        MENUITEMINFO mii = { sizeof(mii) };
+        mii.fMask = MIIM_BITMAP;
+        mii.hbmpItem = icon;
+        SetMenuItemInfo(hMenu, indexMenu, true, &mii);
+      }
       if(rule.defaultAction && firstDefault) {
         firstDefault = false;  //there can be only one default menu item
         SetMenuDefaultItem(hMenu, indexMenu, TRUE);

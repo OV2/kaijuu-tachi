@@ -4,6 +4,9 @@ RuleEditor* ruleEditor = nullptr;
 
 #include "resource/resource.cpp"
 
+typedef int (WINAPI *PICKICONDLG)(HWND hwnd,LPWSTR pszIconPath,UINT cbIconPath,int *piIconIndex);
+HMODULE hShell32 = nullptr;
+PICKICONDLG PickIconDlgW = nullptr;
 Program::Program(const string &pathname) : pathname(pathname) {
   setTitle("kaijuu v06r03");
 
@@ -69,6 +72,7 @@ auto Program::refresh() -> void {
     .append(TableViewColumn().setText("Match"))
     .append(TableViewColumn().setText("Pattern"))
     .append(TableViewColumn().setText("Command").setExpandable())
+	.append(TableViewColumn().setText("Icon").setExpandable())
   );
   for(auto &rule : settings.rules) {
     string match = "Nothing";
@@ -81,6 +85,7 @@ auto Program::refresh() -> void {
       .append(TableViewCell().setText(match))
       .append(TableViewCell().setText(rule.pattern))
       .append(TableViewCell().setText(rule.command))
+	  .append(TableViewCell().setText(rule.icon))
     );
   }
   settingList.resizeColumns();
@@ -161,6 +166,7 @@ auto Program::importAction() -> void {
       node["match-files"].boolean(),
       node["match-folders"].boolean(),
       node["command"].text(),
+      node["icon"].text(),
       node["multi-selection"].boolean(),
     });
   }
@@ -184,6 +190,7 @@ auto Program::exportAction() -> void {
     node("rule/match-files").setValue(rule.matchFiles);
     node("rule/match-folders").setValue(rule.matchFolders);
     node("rule/command").setValue(rule.command);
+    node("rule/icon").setValue(rule.icon);
     node("rule/multi-selection").setValue(rule.multiSelection);
     output.append(BML::serialize(node), "\n");
   }
@@ -226,6 +233,25 @@ RuleEditor::RuleEditor() : index(-1) {
     synchronize();
   });
 
+  iconLabel.setText("Icon:");
+  iconValue.onChange({&RuleEditor::synchronize, this});
+
+  iconSelect.setText("Select ...").onActivate([&] {
+    string_vector iconparts = iconValue.text().split(",");
+    int index = 0;
+    if(iconparts.size()>1)
+      index = iconparts[1].trim(" "," ").integer();
+
+    wchar_t wfilename[PATH_MAX + 1];
+    wcscpy(wfilename,(const wchar_t*)utf16_t(iconparts[0]));
+
+    if(PickIconDlgW(0,wfilename,PATH_MAX + 1,&index)) {
+      string newicon = {string((const char*)utf8_t(wfilename)),",", string(index).trimLeft("+") };
+      iconValue.setText(newicon);
+    }
+    synchronize();
+  });
+
   defaultAction.setText("Default Action");
   filesAction.setText("Match Files");
   foldersAction.setText("Match Folders");
@@ -238,7 +264,8 @@ RuleEditor::RuleEditor() : index(-1) {
       defaultAction.checked(),
       filesAction.checked(),
       foldersAction.checked(),
-      commandValue.text()
+      commandValue.text(),
+      iconValue.text()
     };
     if(index == -1) {
       settings.rules.append(rule);
@@ -257,7 +284,7 @@ RuleEditor::RuleEditor() : index(-1) {
   commandValue.onActivate(assign);
   assignButton.onActivate(assign);
 
-  setFrameGeometry({128, 256, 500, 160});
+  setFrameGeometry({128, 256, 500, 185});
 }
 
 auto RuleEditor::synchronize() -> void {
@@ -276,6 +303,7 @@ auto RuleEditor::show(int ruleID) -> void {
   nameValue.setText(rule.name);
   patternValue.setText(rule.pattern);
   commandValue.setText(rule.command);
+  iconValue.setText(rule.icon);
   defaultAction.setChecked(rule.defaultAction);
   filesAction.setChecked(rule.matchFiles);
   foldersAction.setChecked(rule.matchFolders);
@@ -311,6 +339,11 @@ auto CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) -> int {
   wchar_t filename[MAX_PATH];
   GetModuleFileNameW(module, filename, MAX_PATH);
 
+  hShell32 = LoadLibraryW(L"shell32.dll");
+  if (hShell32) {
+    PickIconDlgW = (PICKICONDLG)GetProcAddress(hShell32, (const char*)62);
+  }
+
   string pathname = (const char*)utf8_t(filename);
   pathname.transform("\\", "/");
   pathname = Location::path(pathname);
@@ -318,6 +351,9 @@ auto CALLBACK WinMain(HINSTANCE module, HINSTANCE, LPSTR, int) -> int {
   program = new Program(pathname);
   ruleEditor = new RuleEditor;
   Application::run();
+
+  if(hShell32)
+    FreeLibrary(hShell32);
 
   return 0;
 }

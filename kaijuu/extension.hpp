@@ -18,6 +18,7 @@ public:
 
 private:
   vector<uint> matchedRules();
+  IconLoader iconLoader;
 };
 
 typedef CShellExt *LPCSHELLEXT;

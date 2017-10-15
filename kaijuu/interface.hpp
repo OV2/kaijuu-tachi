@@ -68,6 +68,10 @@ struct RuleEditor : Window {
       Label commandLabel{&commandLayout, Size{80, 0}};
       LineEdit commandValue{&commandLayout, Size{~0, 0}};
       Button commandSelect{&commandLayout, Size{80, 0}};
+	HorizontalLayout iconLayout{&layout, Size{~0, 0}};
+      Label iconLabel{&iconLayout, Size{80, 0}};
+      LineEdit iconValue{&iconLayout, Size{~0, 0}};
+      Button iconSelect{&iconLayout, Size{80, 0}};
     HorizontalLayout controlLayout{&layout, Size{~0, 0}};
       CheckLabel defaultAction{&controlLayout, Size{90, 0}};
       CheckLabel filesAction{&controlLayout, Size{90, 0}};
